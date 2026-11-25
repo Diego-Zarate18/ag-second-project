@@ -1,0 +1,2048 @@
+{
+  "schema": "knowledge_graph",
+  "schema_version": "1.0.0",
+  "language": "es-MX",
+  "metadata": {
+    "project_id": "SIRUGA",
+    "project_title": "Sistema inteligente basado en algoritmos genéticos para la optimización de rutas de recolección de residuos urbanos mediante una flota heterogénea de vehículos y una red vial geográfica",
+    "generated_date": "2026-11-15",
+    "purpose": "Grafo de conocimiento para documentar el contexto, formulación, alcance, supuestos, restricciones, tecnologías, entradas, salidas, algoritmo genético, validaciones y decisiones del proyecto.",
+    "status_legend": {
+      "acordado": "Decisión tomada durante el diseño de la propuesta.",
+      "supuesto_delimitado": "Condición asumida expresamente para la versión 1.",
+      "fuera_de_alcance": "Característica excluida intencionalmente de la versión 1.",
+      "pendiente_de_diseno_y_pruebas": "Requiere especificación e implementación antes de considerarse resuelta en ejecución.",
+      "pendiente_de_ejecucion": "Prueba definida pero todavía no ejecutada.",
+      "referencia_tecnica": "Documentación externa consultada para fundamentar una decisión."
+    }
+  },
+  "project": {
+    "id": "siruga",
+    "acronym": "SIRUGA",
+    "name": "Sistema Inteligente de Rutas Urbanas mediante Algoritmos Genéticos",
+    "problem_model": "CVRP con un depósito, flota heterogénea en capacidad y demandas no divisibles",
+    "optimization_type": "monoobjetivo",
+    "primary_objective": "Minimizar la distancia total recorrida por todos los vehículos utilizados, expresada en kilómetros.",
+    "scope_version": "1.0",
+    "scope_status": "Alcance funcional y supuestos delimitados. La implementación, integración y pruebas todavía están pendientes.",
+    "nodes_count": 97,
+    "edges_count": 157
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "siruga",
+        "type": "project",
+        "name": "SIRUGA",
+        "description": "Sistema inteligente basado en algoritmos genéticos para la optimización de rutas de recolección de residuos urbanos mediante una flota heterogénea de vehículos y una red vial geográfica.",
+        "status": "propuesta_formal_delimitada",
+        "attributes": {
+          "version_alcance": "1.0",
+          "tipo_optimizacion": "monoobjetivo",
+          "objetivo_principal": "minimizar la distancia total recorrida por la flota",
+          "estado": "alcance funcional y supuestos delimitados; implementación aún no validada"
+        }
+      },
+      {
+        "id": "contexto_urbano",
+        "type": "context",
+        "name": "Contexto de recolección urbana",
+        "description": "Servicio urbano que atiende puntos de recolección distribuidos en diferentes colonias o sectores, utilizando una flota de vehículos que parte de un centro de operaciones.",
+        "status": "acordado"
+      },
+      {
+        "id": "problema",
+        "type": "problem",
+        "name": "Planificación de rutas y asignación de vehículos",
+        "description": "Determinar qué vehículo atiende cada punto y en qué orden lo visita, minimizando los kilómetros totales y respetando las capacidades individuales de carga.",
+        "status": "acordado"
+      },
+      {
+        "id": "solucion",
+        "type": "solution",
+        "name": "Optimización mediante algoritmo genético",
+        "description": "Sistema configurable que obtiene distancias viales y utiliza un algoritmo genético propio para buscar asignaciones y secuencias de visita factibles de menor distancia total.",
+        "status": "acordado"
+      },
+      {
+        "id": "modelo_cvrp",
+        "type": "problem_model",
+        "name": "Capacitated Vehicle Routing Problem (CVRP)",
+        "description": "Problema de ruteo de vehículos con un depósito y demandas en los puntos, donde cada vehículo tiene una capacidad máxima. En este proyecto las capacidades pueden variar entre vehículos.",
+        "status": "modelo_de_referencia",
+        "attributes": {
+          "variante": "flota heterogénea en capacidad",
+          "depositos": 1,
+          "demanda_divisible": false
+        }
+      },
+      {
+        "id": "entorno",
+        "type": "environment",
+        "name": "Entorno geográfico urbano configurable",
+        "description": "Una zona urbana elegida por el usuario dentro de la cobertura de los datos disponibles en la instancia de Valhalla. El escenario se construye en tiempo de ejecución; no depende de escenarios fijos en código o base de datos.",
+        "status": "acordado"
+      },
+      {
+        "id": "zona_urbana",
+        "type": "environment_scope",
+        "name": "Una zona urbana por escenario",
+        "description": "El usuario define una sola zona urbana por ejecución. No se modela una ciudad completa por defecto ni múltiples zonas desconectadas.",
+        "status": "acordado"
+      },
+      {
+        "id": "deposito",
+        "type": "environment_entity",
+        "name": "Centro de operaciones o depósito",
+        "description": "Ubicación geográfica desde la que parten los vehículos utilizados y a la que regresan al finalizar sus recorridos.",
+        "status": "acordado",
+        "attributes": {
+          "cantidad_por_escenario": 1,
+          "coordenadas": [
+            "latitud",
+            "longitud"
+          ]
+        }
+      },
+      {
+        "id": "punto_recoleccion",
+        "type": "environment_entity",
+        "name": "Punto de recolección",
+        "description": "Ubicación geográfica con una demanda conocida de residuos, expresada en kilogramos. Cada punto debe ser atendido exactamente una vez.",
+        "status": "acordado",
+        "attributes": {
+          "campos": [
+            "identificador",
+            "latitud",
+            "longitud",
+            "demanda_kg"
+          ],
+          "demanda_divisible": false
+        }
+      },
+      {
+        "id": "flota",
+        "type": "environment_entity",
+        "name": "Flota de vehículos",
+        "description": "Conjunto de vehículos disponibles para atender los puntos de recolección. La cantidad de vehículos es variable y cada uno puede tener una capacidad de carga distinta.",
+        "status": "acordado"
+      },
+      {
+        "id": "vehiculo",
+        "type": "environment_entity",
+        "name": "Vehículo de recolección",
+        "description": "Unidad que puede realizar como máximo un recorrido en el escenario y tiene una capacidad máxima de carga en kilogramos.",
+        "status": "acordado",
+        "attributes": {
+          "campos": [
+            "identificador",
+            "capacidad_maxima_kg"
+          ],
+          "viajes_por_jornada": 1
+        }
+      },
+      {
+        "id": "red_vial",
+        "type": "environment_entity",
+        "name": "Red vial urbana",
+        "description": "Grafo vial basado en datos cartográficos, con conexiones, sentidos de circulación y restricciones permanentes representadas en los datos.",
+        "status": "acordado"
+      },
+      {
+        "id": "demanda_residuos",
+        "type": "data_concept",
+        "name": "Demanda de residuos",
+        "description": "Cantidad de residuos que debe recogerse en cada punto, conocida antes de iniciar la optimización y expresada en kilogramos.",
+        "status": "acordado",
+        "attributes": {
+          "unidad": "kg",
+          "se_conoce_antes_de_optimizar": true
+        }
+      },
+      {
+        "id": "capacidad_vehiculo",
+        "type": "data_concept",
+        "name": "Capacidad de carga individual",
+        "description": "Límite máximo de kilogramos que puede transportar cada vehículo. Es un dato de entrada y una restricción de factibilidad.",
+        "status": "acordado",
+        "attributes": {
+          "unidad": "kg",
+          "puede_variar_por_vehiculo": true
+        }
+      },
+      {
+        "id": "decision_variables",
+        "type": "decision_variables",
+        "name": "Variables de decisión",
+        "description": "Elementos controlados por el algoritmo: asignación de puntos a vehículos, orden de visita y conexiones consecutivas derivadas de cada recorrido.",
+        "status": "acordado"
+      },
+      {
+        "id": "x_asignacion",
+        "type": "decision_variable",
+        "name": "Asignación de puntos x_ij",
+        "description": "Variable binaria conceptual que indica si el punto j se asigna al vehículo i.",
+        "status": "definicion_conceptual",
+        "attributes": {
+          "dominio": "{0,1}",
+          "interpretacion": "1 si el punto j es atendido por el vehículo i; 0 en caso contrario"
+        }
+      },
+      {
+        "id": "p_orden",
+        "type": "decision_variable",
+        "name": "Orden de visita p_ij",
+        "description": "Posición que ocupa el punto j dentro de la ruta del vehículo i.",
+        "status": "definicion_conceptual",
+        "attributes": {
+          "dominio": "posición entera dentro de la ruta"
+        }
+      },
+      {
+        "id": "y_arco",
+        "type": "decision_variable",
+        "name": "Conexión consecutiva y_iab",
+        "description": "Variable binaria conceptual que indica si el vehículo i se desplaza directamente desde la ubicación a hasta la ubicación b. Puede derivarse de la secuencia codificada en el individuo.",
+        "status": "definicion_conceptual",
+        "attributes": {
+          "dominio": "{0,1}"
+        }
+      },
+      {
+        "id": "objetivo_global",
+        "type": "optimization_objective",
+        "name": "Minimizar la distancia total de la flota",
+        "description": "Minimizar la suma de las distancias de salida, entre puntos consecutivos y de regreso al depósito, para todos los vehículos utilizados.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "min D_total",
+          "unidad": "km",
+          "tipo": "monoobjetivo"
+        }
+      },
+      {
+        "id": "distancia_salida",
+        "type": "optimization_component",
+        "name": "Distancia de salida",
+        "description": "Suma de las distancias desde el depósito hasta el primer punto de cada ruta utilizada.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "D_salida = suma_i d(deposito, primer_punto_i)"
+        }
+      },
+      {
+        "id": "distancia_entre_puntos",
+        "type": "optimization_component",
+        "name": "Distancia entre puntos consecutivos",
+        "description": "Suma de las distancias viales entre pares consecutivos de puntos de cada recorrido.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "D_entre = suma_i suma_k d(punto_ik, punto_i(k+1))"
+        }
+      },
+      {
+        "id": "distancia_regreso",
+        "type": "optimization_component",
+        "name": "Distancia de regreso",
+        "description": "Suma de las distancias desde el último punto de cada ruta utilizada hasta el depósito.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "D_regreso = suma_i d(ultimo_punto_i, deposito)"
+        }
+      },
+      {
+        "id": "distancia_total",
+        "type": "derived_metric",
+        "name": "Distancia total recorrida",
+        "description": "Métrica total que suma los tres componentes anteriores para todos los vehículos utilizados.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "D_total = D_salida + D_entre + D_regreso",
+          "unidad": "km"
+        }
+      },
+      {
+        "id": "aptitud",
+        "type": "fitness_function",
+        "name": "Función de aptitud",
+        "description": "Para individuos factibles, se propone una aptitud inversamente proporcional a la distancia total, de modo que recorridos más cortos obtengan mayor aptitud.",
+        "status": "propuesta_por_validar",
+        "attributes": {
+          "formula": "A(S) = 1 / (1 + D_total(S))",
+          "unidad_distancia": "km",
+          "dominio": "solo individuos factibles",
+          "nota": "La política exacta para reparar o tratar individuos infactibles debe especificarse y probarse durante el diseño del algoritmo."
+        }
+      },
+      {
+        "id": "restriccion_unicidad",
+        "type": "constraint",
+        "name": "Cada punto se atiende exactamente una vez",
+        "description": "Todo punto de recolección se asigna a un solo vehículo y aparece una sola vez en el conjunto de rutas.",
+        "status": "obligatoria",
+        "attributes": {
+          "formula": "para cada j: suma_i x_ij = 1"
+        }
+      },
+      {
+        "id": "restriccion_capacidad",
+        "type": "constraint",
+        "name": "Capacidad máxima por vehículo",
+        "description": "La suma de las demandas de los puntos asignados a un vehículo no puede superar su capacidad individual.",
+        "status": "obligatoria",
+        "attributes": {
+          "formula": "para cada i: suma_j demanda_j * x_ij <= capacidad_i"
+        }
+      },
+      {
+        "id": "restriccion_deposito",
+        "type": "constraint",
+        "name": "Inicio y regreso al depósito",
+        "description": "Cada ruta utilizada debe iniciar en el centro de operaciones y regresar a él.",
+        "status": "obligatoria"
+      },
+      {
+        "id": "restriccion_un_viaje",
+        "type": "constraint",
+        "name": "Un recorrido por vehículo",
+        "description": "Cada vehículo realiza como máximo un recorrido durante el escenario o jornada modelada.",
+        "status": "acordado"
+      },
+      {
+        "id": "restriccion_no_dividir",
+        "type": "constraint",
+        "name": "Demanda no divisible",
+        "description": "Un punto de recolección no puede dividir su demanda entre varios vehículos.",
+        "status": "acordado"
+      },
+      {
+        "id": "restriccion_factibilidad_vial",
+        "type": "constraint",
+        "name": "Conectividad vial válida",
+        "description": "Las ubicaciones deben tener conexiones válidas con la red vial y las distancias requeridas para formar las rutas deben estar disponibles.",
+        "status": "obligatoria"
+      },
+      {
+        "id": "openstreetmap",
+        "type": "technology",
+        "name": "OpenStreetMap",
+        "description": "Fuente de datos cartográficos abiertos para representar la red vial y el contexto geográfico.",
+        "status": "seleccionada",
+        "attributes": {
+          "rol": "datos cartográficos",
+          "no_es": "el algoritmo de optimización ni el motor de rutas"
+        }
+      },
+      {
+        "id": "leaflet",
+        "type": "technology",
+        "name": "Leaflet",
+        "description": "Biblioteca JavaScript para mostrar el mapa interactivo, marcadores, selección de ubicaciones y geometrías de rutas.",
+        "status": "seleccionada",
+        "attributes": {
+          "rol": "visualización e interacción",
+          "eventos_relevantes": "El clic en el mapa proporciona una ubicación geográfica latitud/longitud"
+        }
+      },
+      {
+        "id": "valhalla",
+        "type": "technology",
+        "name": "Valhalla",
+        "description": "Motor de cálculo de rutas sobre una red vial derivada de datos cartográficos. Se utilizará para calcular matrices de distancias y geometrías de recorridos.",
+        "status": "seleccionada",
+        "attributes": {
+          "rol": "motor de rutas y matriz de distancias",
+          "perfil_previsto": "truck con parámetros comunes a toda la flota",
+          "criterio": "shortest=true y disable_hierarchy_pruning=true cuando el límite operativo de Valhalla lo permita"
+        }
+      },
+      {
+        "id": "valhalla_matrix",
+        "type": "technology_component",
+        "name": "Valhalla Time-Distance Matrix",
+        "description": "Servicio que calcula distancias entre conjuntos de ubicaciones y devuelve resultados organizados como matriz. Las conexiones no encontradas pueden aparecer como null.",
+        "status": "seleccionado",
+        "attributes": {
+          "uso": "solicitar matriz cuadrada con el conjunto de ubicaciones como fuentes y destinos",
+          "salida_relevante": "distances",
+          "unidades_salida": "normalizar y documentar en kilómetros"
+        }
+      },
+      {
+        "id": "valhalla_route",
+        "type": "technology_component",
+        "name": "Valhalla Route",
+        "description": "Servicio utilizado para recuperar geometría de los recorridos que se mostrarán en el mapa para los individuos seleccionados.",
+        "status": "seleccionado"
+      },
+      {
+        "id": "python",
+        "type": "technology",
+        "name": "Python",
+        "description": "Lenguaje previsto para implementar el algoritmo genético, validaciones, evaluación de aptitud y procesamiento de resultados.",
+        "status": "seleccionado"
+      },
+      {
+        "id": "osrm_descartado",
+        "type": "technology_decision",
+        "name": "OSRM convencional descartado como motor principal",
+        "description": "Se descarta el uso directo de OSRM con su configuración convencional porque prioriza rutas rápidas y no garantiza que las distancias devueltas correspondan a los caminos de menor longitud. Se eligió Valhalla por su opción shortest.",
+        "status": "decision_cerrada",
+        "attributes": {
+          "motivo": "coherencia entre la métrica del motor de rutas y el objetivo de minimizar kilómetros"
+        }
+      },
+      {
+        "id": "plano_cartesiano_descartado",
+        "type": "scope_decision",
+        "name": "Plano cartesiano descartado",
+        "description": "No se utilizará un terreno abstracto de coordenadas X/Y; las ubicaciones serán coordenadas geográficas sobre un mapa real.",
+        "status": "decision_cerrada"
+      },
+      {
+        "id": "terreno_aleatorio_descartado",
+        "type": "scope_decision",
+        "name": "Terreno aleatorio descartado como entorno principal",
+        "description": "No se generará una red vial artificial aleatoria como entorno de demostración principal. Los escenarios se construirán sobre datos geográficos reales.",
+        "status": "decision_cerrada"
+      },
+      {
+        "id": "matriz_distancias",
+        "type": "data_structure",
+        "name": "Matriz de distancias viales",
+        "description": "Estructura N x N con la distancia calculada entre cada par ordenado de ubicaciones, incluyendo depósito y puntos de recolección. No se debe asumir simetría: d(a,b) puede diferir de d(b,a) por sentidos de circulación.",
+        "status": "diseño_acordado",
+        "attributes": {
+          "dimensiones": "N x N; N = 1 + cantidad de puntos de recolección",
+          "se_calcula": "una vez por escenario, antes del algoritmo genético",
+          "se_usa_en": "evaluación de individuos",
+          "manejo_null": "rechazar o corregir escenario/ubicación; nunca sustituir null por cero"
+        }
+      },
+      {
+        "id": "representacion_individuo",
+        "type": "genetic_encoding",
+        "name": "Representación del individuo",
+        "description": "Representación conceptual mediante una secuencia de identificadores de puntos, particionada en rutas por separadores que identifican los vehículos. Cada punto debe aparecer exactamente una vez.",
+        "status": "propuesta_de_diseno_pendiente_de_pruebas",
+        "attributes": {
+          "ejemplo": "[P03, P01] | [P02] | [P05, P04]",
+          "significado": "cada bloque corresponde al recorrido de un vehículo",
+          "restricciones": "sin puntos duplicados ni omitidos; respetar capacidades"
+        }
+      },
+      {
+        "id": "algoritmo_genetico",
+        "type": "algorithm",
+        "name": "Algoritmo genético propio",
+        "description": "Método de búsqueda basado en una población de individuos que representan asignaciones y secuencias de rutas. Evoluciona soluciones mediante selección, cruza, mutación y conservación del mejor individuo.",
+        "status": "tecnologia_metodologica_acordada"
+      },
+      {
+        "id": "seleccion",
+        "type": "genetic_operator",
+        "name": "Selección",
+        "description": "Selecciona individuos de la población para reproducción de acuerdo con su aptitud y factibilidad.",
+        "status": "metodo_general_acordado; estrategia_especifica_pendiente"
+      },
+      {
+        "id": "cruza",
+        "type": "genetic_operator",
+        "name": "Cruza",
+        "description": "Combina información de dos individuos para generar descendencia, preservando la integridad de la permutación de puntos y la estructura de rutas.",
+        "status": "metodo_general_acordado; operador_especifico_pendiente"
+      },
+      {
+        "id": "mutacion",
+        "type": "genetic_operator",
+        "name": "Mutación",
+        "description": "Modifica el orden de visita o la asignación de puntos sin perder ni duplicar ubicaciones; la estrategia concreta debe respetar las capacidades o activar reparación.",
+        "status": "metodo_general_acordado; operador_especifico_pendiente"
+      },
+      {
+        "id": "reparacion_individuos",
+        "type": "algorithm_mechanism",
+        "name": "Reparación o preservación de factibilidad",
+        "description": "Mecanismo por diseñar para corregir individuos que excedan capacidades o para impedir que los operadores genéticos produzcan soluciones inválidas.",
+        "status": "pendiente_de_diseno_y_pruebas"
+      },
+      {
+        "id": "elitismo",
+        "type": "algorithm_mechanism",
+        "name": "Conservación del mejor individuo",
+        "description": "Se conservará al menos el mejor individuo conocido para evitar perder la mejor solución encontrada durante la evolución.",
+        "status": "requisito_academico"
+      },
+      {
+        "id": "poblacion",
+        "type": "algorithm_concept",
+        "name": "Población de individuos",
+        "description": "Conjunto de soluciones candidatas evaluadas en cada generación.",
+        "status": "acordado"
+      },
+      {
+        "id": "tres_mejores",
+        "type": "output",
+        "name": "Tres mejores individuos factibles",
+        "description": "Tres soluciones factibles con menor distancia total, ordenadas de acuerdo con la aptitud o distancia total.",
+        "status": "salida_obligatoria"
+      },
+      {
+        "id": "grafica_aptitud",
+        "type": "output",
+        "name": "Gráfica de evolución de aptitud",
+        "description": "Gráfica con tres curvas: mejor aptitud, peor aptitud y aptitud promedio por generación. Según las diapositivas de clase, las métricas se registran después de mutación y antes de poda.",
+        "status": "salida_obligatoria"
+      },
+      {
+        "id": "mapa_resultados",
+        "type": "output",
+        "name": "Mapa de recorridos",
+        "description": "Mapa interactivo que muestra centro de operaciones, puntos de recolección y geometrías de las rutas de los tres mejores individuos, diferenciadas visualmente.",
+        "status": "salida_obligatoria"
+      },
+      {
+        "id": "tabla_resultados",
+        "type": "output",
+        "name": "Tabla comparativa de soluciones",
+        "description": "Tabla por individuo y vehículo con puntos asignados, orden de visita, carga total, capacidad utilizada y distancia recorrida; incluye distancia total de la flota.",
+        "status": "salida_obligatoria"
+      },
+      {
+        "id": "entrada_deposito",
+        "type": "input",
+        "name": "Entrada: centro de operaciones",
+        "description": "Ubicación del depósito seleccionada directamente en el mapa o indicada mediante coordenadas geográficas.",
+        "status": "acordado",
+        "attributes": {
+          "campos": [
+            "latitud",
+            "longitud"
+          ]
+        }
+      },
+      {
+        "id": "entrada_vehiculos",
+        "type": "input",
+        "name": "Entrada: flota de vehículos",
+        "description": "Lista de vehículos con identificador y capacidad máxima de carga en kilogramos.",
+        "status": "acordado",
+        "attributes": {
+          "campos": [
+            "identificador",
+            "capacidad_maxima_kg"
+          ]
+        }
+      },
+      {
+        "id": "entrada_puntos",
+        "type": "input",
+        "name": "Entrada: puntos de recolección",
+        "description": "Lista de puntos con identificador, latitud, longitud y demanda de residuos en kilogramos.",
+        "status": "acordado",
+        "attributes": {
+          "campos": [
+            "identificador",
+            "latitud",
+            "longitud",
+            "demanda_kg"
+          ]
+        }
+      },
+      {
+        "id": "entrada_parametros_ag",
+        "type": "input",
+        "name": "Entrada: parámetros del algoritmo genético",
+        "description": "Parámetros configurables para la ejecución: tamaño de población, número de generaciones, probabilidad de cruza y probabilidad de mutación.",
+        "status": "acordado"
+      },
+      {
+        "id": "sin_base_datos",
+        "type": "architecture_decision",
+        "name": "Sin base de datos persistente",
+        "description": "Los datos del escenario se capturan en la interfaz y se mantienen en memoria durante la ejecución. No se requiere una base de datos para la versión 1.",
+        "status": "decision_cerrada"
+      },
+      {
+        "id": "flujo_interfaz",
+        "type": "workflow",
+        "name": "Configuración del escenario",
+        "description": "El usuario selecciona el depósito, agrega puntos mediante clics sobre el mapa y registra la demanda; después registra los vehículos y sus capacidades y configura los parámetros del algoritmo.",
+        "status": "acordado"
+      },
+      {
+        "id": "flujo_matriz",
+        "type": "workflow",
+        "name": "Preparación de distancias",
+        "description": "El sistema solicita a Valhalla la matriz de distancias para las ubicaciones del escenario, comprueba que las conexiones necesarias sean válidas y normaliza las distancias a kilómetros antes de iniciar la optimización.",
+        "status": "acordado"
+      },
+      {
+        "id": "flujo_optimizacion",
+        "type": "workflow",
+        "name": "Ejecución de optimización",
+        "description": "El algoritmo genera la población, evalúa factibilidad y aptitud, aplica selección, cruza y mutación, conserva el mejor individuo y registra las métricas de cada generación.",
+        "status": "acordado_en_alto_nivel"
+      },
+      {
+        "id": "flujo_visualizacion",
+        "type": "workflow",
+        "name": "Presentación de resultados",
+        "description": "El sistema recupera la geometría vial de las rutas seleccionadas y presenta mapa, tabla comparativa, tres mejores individuos y gráfica de evolución de aptitud.",
+        "status": "acordado"
+      },
+      {
+        "id": "supuesto_red_estatica",
+        "type": "assumption",
+        "name": "Red vial estática",
+        "description": "La red vial no cambia durante la ejecución. No se simulan cierres temporales, accidentes, obras ni bloqueos.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_sin_trafico",
+        "type": "assumption",
+        "name": "Sin tráfico dinámico",
+        "description": "No se modelan congestionamientos ni velocidades variables en tiempo real. El criterio de optimización es distancia, no duración del viaje.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "supuesto_restricciones_permanentes",
+        "type": "assumption",
+        "name": "Se respetan restricciones permanentes de circulación",
+        "description": "La expresión 'calles libres' significa ausencia de bloqueos temporales; no significa que todas las calles sean bidireccionales o transitables por cualquier vehículo. Se respetan sentidos únicos y restricciones permanentes incluidas en los datos y perfil de circulación.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_acceso_vial",
+        "type": "assumption",
+        "name": "Puntos con acceso vial válido",
+        "description": "Todos los puntos deben poder asociarse a una ubicación accesible desde la red vial. Los puntos sin conexión válida se rechazan o deben corregirse antes de optimizar.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_demanda_conocida",
+        "type": "assumption",
+        "name": "Demanda conocida y fija",
+        "description": "La cantidad de residuos de cada punto es conocida antes de la ejecución y no cambia mientras el algoritmo optimiza.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_perfil_comun",
+        "type": "assumption",
+        "name": "Perfil físico común de circulación",
+        "description": "Todos los vehículos utilizan el mismo perfil físico de circulación en Valhalla; las diferencias individuales modeladas corresponden a capacidad de carga, no a dimensiones, peso bruto o restricciones físicas específicas.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "fuera_multiples_depositos",
+        "type": "out_of_scope",
+        "name": "Múltiples centros de operaciones",
+        "description": "No se contemplan dos o más depósitos en un mismo escenario.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_multiviajes",
+        "type": "out_of_scope",
+        "name": "Varios viajes por vehículo",
+        "description": "No se contempla que un vehículo regrese a descargar y vuelva a salir en una misma jornada.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_demanda_divisible",
+        "type": "out_of_scope",
+        "name": "División de la demanda de un punto",
+        "description": "No se permite que varios vehículos compartan la recolección de un mismo punto.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_equilibrio",
+        "type": "out_of_scope",
+        "name": "Equilibrio de carga o distancia entre vehículos",
+        "description": "No se busca repartir equitativamente el trabajo o los kilómetros. La distancia total de la flota es el único objetivo.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_tiempo_combustible",
+        "type": "out_of_scope",
+        "name": "Optimización de tiempo y combustible",
+        "description": "El tiempo de conducción y el consumo de combustible no forman parte de la función objetivo ni se presentan como objetivos optimizados.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_clima",
+        "type": "out_of_scope",
+        "name": "Condiciones meteorológicas",
+        "description": "No se consideran lluvia, inundaciones u otras condiciones climáticas dinámicas.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_dimensiones_individuales",
+        "type": "out_of_scope",
+        "name": "Dimensiones y restricciones físicas individuales",
+        "description": "No se modelan alturas, anchuras, longitudes, pesos brutos o cargas por eje específicos de cada vehículo.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "validacion_capacidad_basica",
+        "type": "validation_rule",
+        "name": "Validaciones necesarias de capacidad",
+        "description": "Antes de optimizar se comprobarán condiciones necesarias como que ninguna demanda individual exceda la mayor capacidad disponible y que la demanda total no supere la capacidad total de la flota. Estas condiciones no bastan por sí solas para demostrar que existe una asignación factible cuando las demandas no se pueden dividir.",
+        "status": "regla_acordada; comprobacion_de_factibilidad_completa_pendiente"
+      },
+      {
+        "id": "validacion_matriz",
+        "type": "validation_rule",
+        "name": "Validación de matriz completa",
+        "description": "Se comprobará que las distancias entre ubicaciones necesarias estén disponibles. Los valores null o las ubicaciones sin conexión no se interpretarán como distancia cero.",
+        "status": "requisito_obligatorio"
+      },
+      {
+        "id": "validacion_genotipo",
+        "type": "validation_rule",
+        "name": "Integridad de individuos",
+        "description": "Después de inicialización, cruza, mutación y reparación, cada punto debe aparecer exactamente una vez y pertenecer a una sola ruta.",
+        "status": "requisito_obligatorio"
+      },
+      {
+        "id": "validacion_factibilidad",
+        "type": "validation_rule",
+        "name": "Factibilidad de capacidad",
+        "description": "Las soluciones presentadas como mejores deben respetar la capacidad de cada vehículo. La estrategia definitiva para construir, reparar o penalizar individuos infactibles aún debe diseñarse y probarse.",
+        "status": "requisito_obligatorio; mecanismo_pendiente"
+      },
+      {
+        "id": "limite_valhalla",
+        "type": "technical_limit",
+        "name": "Límite operativo de búsqueda de Valhalla",
+        "description": "shortest cambia el costo a una métrica basada en distancia, pero por sí solo no desactiva la poda jerárquica. disable_hierarchy_pruning puede permitir la ruta óptima real dentro del límite de distancia configurado, con impacto en rendimiento; por encima de ese límite puede ignorarse.",
+        "status": "limitacion_documentada; limite_de_instancia_por_definir",
+        "attributes": {
+          "opciones": {
+            "shortest": true,
+            "disable_hierarchy_pruning": true
+          },
+          "garantia": "condicionada al límite operativo y a la configuración efectiva"
+        }
+      },
+      {
+        "id": "limite_cobertura",
+        "type": "technical_limit",
+        "name": "Cobertura de datos geográficos",
+        "description": "Solo se podrán construir escenarios en zonas cubiertas por los datos viales cargados en la instancia de Valhalla utilizada. La disponibilidad de tiles y la cobertura de rutas son dependencias distintas.",
+        "status": "limitacion_delimitada"
+      },
+      {
+        "id": "limite_servicios_publicos",
+        "type": "technical_limit",
+        "name": "Disponibilidad y condiciones de servicios públicos",
+        "description": "Los servicios públicos de tiles no ofrecen disponibilidad garantizada y tienen políticas de uso, atribución y caché. No se debe asumir que un endpoint público será un servicio de producción estable.",
+        "status": "limitacion_delimitada"
+      },
+      {
+        "id": "error_servicio_externo",
+        "type": "error_handling",
+        "name": "Fallo de servicio cartográfico o de rutas",
+        "description": "Si el servicio de mapas o Valhalla no está disponible, el sistema debe informar el error y detener el cálculo que dependa del servicio; no debe inventar distancias ni geometrías.",
+        "status": "requisito_obligatorio"
+      },
+      {
+        "id": "criterio_tres_componentes",
+        "type": "academic_note",
+        "name": "Tres componentes de una única métrica",
+        "description": "Las variables de salida/optimización se dividen en distancia de salida, distancia entre puntos y distancia de regreso para mostrar la composición de la métrica solicitada. Matemáticamente son componentes de un solo objetivo, no tres objetivos independientes. Confirmar que esta interpretación satisface al profesor.",
+        "status": "riesgo_academico_pendiente_de_confirmacion"
+      },
+      {
+        "id": "prueba_ruta_corta",
+        "type": "test",
+        "name": "Prueba de rutas alternativas",
+        "description": "Comparar pares de ubicaciones con rutas alternativas y comprobar que la configuración de Valhalla selecciona la de menor distancia dentro de los límites operativos declarados.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_unidireccionales",
+        "type": "test",
+        "name": "Prueba de calles de un solo sentido",
+        "description": "Verificar que la matriz y las geometrías respeten calles de un solo sentido y que las distancias origen-destino puedan ser asimétricas.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_punto_sin_acceso",
+        "type": "test",
+        "name": "Prueba de ubicación sin acceso vial",
+        "description": "Ingresar una ubicación no conectada y comprobar que se informa el error o se solicita corregir la ubicación antes de optimizar.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_capacidades",
+        "type": "test",
+        "name": "Prueba de capacidades heterogéneas",
+        "description": "Comprobar que ningún individuo factible exceda la capacidad del vehículo al que se asignan los puntos.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_unicidad",
+        "type": "test",
+        "name": "Prueba de unicidad de puntos",
+        "description": "Comprobar que todos los puntos aparezcan exactamente una vez después de inicialización, cruza, mutación y reparación.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_tres_mejores",
+        "type": "test",
+        "name": "Prueba de los tres mejores individuos",
+        "description": "Comprobar que las tres soluciones presentadas sean factibles, distintas cuando existan alternativas y ordenadas por distancia total ascendente.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_aptitud",
+        "type": "test",
+        "name": "Prueba de evolución de aptitud",
+        "description": "Comprobar el registro por generación de mejor, peor y promedio después de mutación y antes de poda, de acuerdo con el material de clase.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "riesgo_no_factible",
+        "type": "risk",
+        "name": "El algoritmo no encuentra una solución factible",
+        "description": "La ausencia de una solución factible en la población no demuestra por sí sola que no exista una asignación válida. Se necesita distinguir entre escenario imposible y fallo heurístico para encontrar una solución.",
+        "status": "riesgo_identificado; protocolo_pendiente"
+      },
+      {
+        "id": "sin_optimo_global",
+        "type": "limitation",
+        "name": "No se garantiza el óptimo global del CVRP",
+        "description": "El algoritmo genético es una metaheurística y busca buenas soluciones; no se afirmará que siempre obtiene la solución global óptima de la asignación y secuenciación de toda la flota.",
+        "status": "limitacion_documentada"
+      },
+      {
+        "id": "material_clase_ag",
+        "type": "academic_source",
+        "name": "Diapositivas de Fundamentos de Inteligencia Artificial",
+        "description": "Material de clase sobre algoritmos evolutivos, representación de individuos, secuencias de identificadores, selección, cruza, mutación, conservación del mejor individuo y evolución de aptitud.",
+        "status": "fuente_del_curso",
+        "attributes": {
+          "archivo": "2026.10.21 IA.pptx.pdf",
+          "paginas_relevantes": "8-18",
+          "requisito_grafica": "mejor, peor y promedio de aptitud; medición después de mutación y antes de poda"
+        }
+      },
+      {
+        "id": "referencia_valhalla_route",
+        "type": "documentation_reference",
+        "name": "Documentación de Valhalla Route API",
+        "description": "Documentación oficial sobre opciones shortest y disable_hierarchy_pruning, incluidos sus límites y costos de rendimiento.",
+        "status": "referencia_tecnica",
+        "attributes": {
+          "url": "https://valhalla.github.io/valhalla/api/route/api-reference/"
+        }
+      },
+      {
+        "id": "referencia_valhalla_matrix",
+        "type": "documentation_reference",
+        "name": "Documentación de Valhalla Matrix API",
+        "description": "Documentación oficial del servicio de matriz de tiempos y distancias, formato de resultados y conexiones no encontradas.",
+        "status": "referencia_tecnica",
+        "attributes": {
+          "url": "https://valhalla.github.io/valhalla/api/matrix/api-reference/"
+        }
+      },
+      {
+        "id": "referencia_leaflet",
+        "type": "documentation_reference",
+        "name": "Documentación de Leaflet",
+        "description": "Documentación oficial sobre eventos de interacción del mapa y acceso a las coordenadas latitud/longitud del clic.",
+        "status": "referencia_tecnica",
+        "attributes": {
+          "url": "https://leafletjs.com/reference.html"
+        }
+      },
+      {
+        "id": "referencia_osm_tiles",
+        "type": "documentation_reference",
+        "name": "Política de uso de tiles de OpenStreetMap",
+        "description": "Política oficial sobre atribución, disponibilidad, caché, identificación de aplicación y límites de uso de los servidores públicos de tiles.",
+        "status": "referencia_tecnica",
+        "attributes": {
+          "url": "https://operations.osmfoundation.org/policies/tiles/"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "siruga",
+        "target": "contexto_urbano",
+        "relation": "se_desarrolla_en"
+      },
+      {
+        "source": "siruga",
+        "target": "problema",
+        "relation": "busca_resolver"
+      },
+      {
+        "source": "siruga",
+        "target": "solucion",
+        "relation": "propone_resolver"
+      },
+      {
+        "source": "siruga",
+        "target": "modelo_cvrp",
+        "relation": "se_modela_como"
+      },
+      {
+        "source": "siruga",
+        "target": "entorno",
+        "relation": "opera_en"
+      },
+      {
+        "source": "siruga",
+        "target": "decision_variables",
+        "relation": "controla"
+      },
+      {
+        "source": "siruga",
+        "target": "objetivo_global",
+        "relation": "persigue"
+      },
+      {
+        "source": "siruga",
+        "target": "algoritmo_genetico",
+        "relation": "utiliza"
+      },
+      {
+        "source": "siruga",
+        "target": "openstreetmap",
+        "relation": "utiliza_datos_de"
+      },
+      {
+        "source": "siruga",
+        "target": "leaflet",
+        "relation": "visualiza_con"
+      },
+      {
+        "source": "siruga",
+        "target": "valhalla",
+        "relation": "calcula_rutas_con"
+      },
+      {
+        "source": "siruga",
+        "target": "python",
+        "relation": "se_implementa_en"
+      },
+      {
+        "source": "siruga",
+        "target": "sin_base_datos",
+        "relation": "adopta_decision_de_arquitectura"
+      },
+      {
+        "source": "contexto_urbano",
+        "target": "problema",
+        "relation": "da_origen_a"
+      },
+      {
+        "source": "problema",
+        "target": "solucion",
+        "relation": "se_aborda_mediante"
+      },
+      {
+        "source": "solucion",
+        "target": "modelo_cvrp",
+        "relation": "utiliza_modelo"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "entorno",
+        "relation": "se_ejecuta_en"
+      },
+      {
+        "source": "entorno",
+        "target": "zona_urbana",
+        "relation": "delimita"
+      },
+      {
+        "source": "entorno",
+        "target": "deposito",
+        "relation": "contiene"
+      },
+      {
+        "source": "entorno",
+        "target": "punto_recoleccion",
+        "relation": "contiene"
+      },
+      {
+        "source": "entorno",
+        "target": "flota",
+        "relation": "contiene"
+      },
+      {
+        "source": "entorno",
+        "target": "red_vial",
+        "relation": "utiliza"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_red_estatica",
+        "relation": "asume"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_sin_trafico",
+        "relation": "asume"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_restricciones_permanentes",
+        "relation": "respeta"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_acceso_vial",
+        "relation": "requiere"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_demanda_conocida",
+        "relation": "asume"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_perfil_comun",
+        "relation": "asume"
+      },
+      {
+        "source": "flota",
+        "target": "vehiculo",
+        "relation": "esta_compuesta_por"
+      },
+      {
+        "source": "vehiculo",
+        "target": "capacidad_vehiculo",
+        "relation": "tiene_restriccion"
+      },
+      {
+        "source": "punto_recoleccion",
+        "target": "demanda_residuos",
+        "relation": "tiene_demanda"
+      },
+      {
+        "source": "deposito",
+        "target": "entorno",
+        "relation": "es_unico_en"
+      },
+      {
+        "source": "red_vial",
+        "target": "supuesto_restricciones_permanentes",
+        "relation": "incluye"
+      },
+      {
+        "source": "decision_variables",
+        "target": "x_asignacion",
+        "relation": "incluye"
+      },
+      {
+        "source": "decision_variables",
+        "target": "p_orden",
+        "relation": "incluye"
+      },
+      {
+        "source": "decision_variables",
+        "target": "y_arco",
+        "relation": "incluye"
+      },
+      {
+        "source": "x_asignacion",
+        "target": "vehiculo",
+        "relation": "determina"
+      },
+      {
+        "source": "x_asignacion",
+        "target": "punto_recoleccion",
+        "relation": "asigna"
+      },
+      {
+        "source": "p_orden",
+        "target": "punto_recoleccion",
+        "relation": "ordena"
+      },
+      {
+        "source": "y_arco",
+        "target": "red_vial",
+        "relation": "conecta"
+      },
+      {
+        "source": "objetivo_global",
+        "target": "distancia_salida",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "objetivo_global",
+        "target": "distancia_entre_puntos",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "objetivo_global",
+        "target": "distancia_regreso",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "distancia_salida",
+        "target": "distancia_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "distancia_entre_puntos",
+        "target": "distancia_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "distancia_regreso",
+        "target": "distancia_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "distancia_total",
+        "target": "objetivo_global",
+        "relation": "se_minimiza_mediante"
+      },
+      {
+        "source": "aptitud",
+        "target": "distancia_total",
+        "relation": "evalua"
+      },
+      {
+        "source": "aptitud",
+        "target": "representacion_individuo",
+        "relation": "se_aplica_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_unicidad",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_capacidad",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_deposito",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_un_viaje",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_no_dividir",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_factibilidad_vial",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "restriccion_unicidad",
+        "target": "punto_recoleccion",
+        "relation": "controla"
+      },
+      {
+        "source": "restriccion_capacidad",
+        "target": "capacidad_vehiculo",
+        "relation": "controla"
+      },
+      {
+        "source": "restriccion_capacidad",
+        "target": "demanda_residuos",
+        "relation": "utiliza"
+      },
+      {
+        "source": "restriccion_deposito",
+        "target": "deposito",
+        "relation": "utiliza"
+      },
+      {
+        "source": "restriccion_factibilidad_vial",
+        "target": "red_vial",
+        "relation": "utiliza"
+      },
+      {
+        "source": "openstreetmap",
+        "target": "red_vial",
+        "relation": "proporciona"
+      },
+      {
+        "source": "leaflet",
+        "target": "openstreetmap",
+        "relation": "muestra"
+      },
+      {
+        "source": "leaflet",
+        "target": "flujo_interfaz",
+        "relation": "captura_coordenadas_de"
+      },
+      {
+        "source": "valhalla",
+        "target": "openstreetmap",
+        "relation": "utiliza_datos_derivados_de"
+      },
+      {
+        "source": "valhalla",
+        "target": "valhalla_matrix",
+        "relation": "ofrece"
+      },
+      {
+        "source": "valhalla",
+        "target": "valhalla_route",
+        "relation": "ofrece"
+      },
+      {
+        "source": "valhalla_matrix",
+        "target": "matriz_distancias",
+        "relation": "genera"
+      },
+      {
+        "source": "valhalla_route",
+        "target": "mapa_resultados",
+        "relation": "genera_geometria_para"
+      },
+      {
+        "source": "matriz_distancias",
+        "target": "aptitud",
+        "relation": "alimenta"
+      },
+      {
+        "source": "matriz_distancias",
+        "target": "algoritmo_genetico",
+        "relation": "se_usa_en"
+      },
+      {
+        "source": "python",
+        "target": "algoritmo_genetico",
+        "relation": "implementa"
+      },
+      {
+        "source": "osrm_descartado",
+        "target": "valhalla",
+        "relation": "se_sustituye_por"
+      },
+      {
+        "source": "plano_cartesiano_descartado",
+        "target": "entorno",
+        "relation": "se_sustituye_por"
+      },
+      {
+        "source": "terreno_aleatorio_descartado",
+        "target": "entorno",
+        "relation": "se_sustituye_por"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "poblacion",
+        "relation": "opera_sobre"
+      },
+      {
+        "source": "poblacion",
+        "target": "representacion_individuo",
+        "relation": "esta_formada_por"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "seleccion",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "cruza",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "mutacion",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "elitismo",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "reparacion_individuos",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "representacion_individuo",
+        "target": "decision_variables",
+        "relation": "representa"
+      },
+      {
+        "source": "representacion_individuo",
+        "target": "aptitud",
+        "relation": "se_evalua_con"
+      },
+      {
+        "source": "cruza",
+        "target": "validacion_genotipo",
+        "relation": "debe_preservar"
+      },
+      {
+        "source": "mutacion",
+        "target": "validacion_genotipo",
+        "relation": "debe_preservar"
+      },
+      {
+        "source": "reparacion_individuos",
+        "target": "validacion_factibilidad",
+        "relation": "busca_cumplir"
+      },
+      {
+        "source": "elitismo",
+        "target": "tres_mejores",
+        "relation": "conserva"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "tres_mejores",
+        "relation": "produce"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "grafica_aptitud",
+        "relation": "registra"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_deposito",
+        "relation": "captura"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_vehiculos",
+        "relation": "captura"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_puntos",
+        "relation": "captura"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_parametros_ag",
+        "relation": "captura"
+      },
+      {
+        "source": "entrada_deposito",
+        "target": "deposito",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_vehiculos",
+        "target": "flota",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_puntos",
+        "target": "punto_recoleccion",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_parametros_ag",
+        "target": "algoritmo_genetico",
+        "relation": "configura"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "flujo_matriz",
+        "relation": "precede"
+      },
+      {
+        "source": "flujo_matriz",
+        "target": "valhalla_matrix",
+        "relation": "utiliza"
+      },
+      {
+        "source": "flujo_matriz",
+        "target": "matriz_distancias",
+        "relation": "produce"
+      },
+      {
+        "source": "flujo_matriz",
+        "target": "flujo_optimizacion",
+        "relation": "precede"
+      },
+      {
+        "source": "flujo_optimizacion",
+        "target": "algoritmo_genetico",
+        "relation": "ejecuta"
+      },
+      {
+        "source": "flujo_optimizacion",
+        "target": "flujo_visualizacion",
+        "relation": "precede"
+      },
+      {
+        "source": "flujo_visualizacion",
+        "target": "mapa_resultados",
+        "relation": "produce"
+      },
+      {
+        "source": "flujo_visualizacion",
+        "target": "tabla_resultados",
+        "relation": "produce"
+      },
+      {
+        "source": "flujo_visualizacion",
+        "target": "tres_mejores",
+        "relation": "produce"
+      },
+      {
+        "source": "flujo_visualizacion",
+        "target": "grafica_aptitud",
+        "relation": "produce"
+      },
+      {
+        "source": "tabla_resultados",
+        "target": "distancia_total",
+        "relation": "presenta"
+      },
+      {
+        "source": "tabla_resultados",
+        "target": "capacidad_vehiculo",
+        "relation": "presenta"
+      },
+      {
+        "source": "mapa_resultados",
+        "target": "red_vial",
+        "relation": "visualiza"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_multiples_depositos",
+        "relation": "excluye_del_alcance_v1"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_multiviajes",
+        "relation": "excluye_del_alcance_v1"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_demanda_divisible",
+        "relation": "excluye_del_alcance_v1"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_equilibrio",
+        "relation": "excluye_del_alcance_v1"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_tiempo_combustible",
+        "relation": "excluye_del_alcance_v1"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_clima",
+        "relation": "excluye_del_alcance_v1"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_dimensiones_individuales",
+        "relation": "excluye_del_alcance_v1"
+      },
+      {
+        "source": "supuesto_red_estatica",
+        "target": "supuesto_sin_trafico",
+        "relation": "excluye"
+      },
+      {
+        "source": "supuesto_red_estatica",
+        "target": "contexto_urbano",
+        "relation": "excluye"
+      },
+      {
+        "source": "supuesto_acceso_vial",
+        "target": "validacion_matriz",
+        "relation": "se_verifica_con"
+      },
+      {
+        "source": "validacion_matriz",
+        "target": "matriz_distancias",
+        "relation": "comprueba"
+      },
+      {
+        "source": "validacion_matriz",
+        "target": "error_servicio_externo",
+        "relation": "trata_null_como"
+      },
+      {
+        "source": "validacion_capacidad_basica",
+        "target": "capacidad_vehiculo",
+        "relation": "comprueba"
+      },
+      {
+        "source": "validacion_capacidad_basica",
+        "target": "demanda_residuos",
+        "relation": "utiliza"
+      },
+      {
+        "source": "validacion_genotipo",
+        "target": "representacion_individuo",
+        "relation": "comprueba"
+      },
+      {
+        "source": "validacion_factibilidad",
+        "target": "restriccion_capacidad",
+        "relation": "comprueba"
+      },
+      {
+        "source": "limite_valhalla",
+        "target": "valhalla",
+        "relation": "limita"
+      },
+      {
+        "source": "limite_cobertura",
+        "target": "entorno",
+        "relation": "limita"
+      },
+      {
+        "source": "limite_servicios_publicos",
+        "target": "openstreetmap",
+        "relation": "limita"
+      },
+      {
+        "source": "error_servicio_externo",
+        "target": "valhalla",
+        "relation": "se_activa_si_falla"
+      },
+      {
+        "source": "error_servicio_externo",
+        "target": "openstreetmap",
+        "relation": "se_activa_si_falla"
+      },
+      {
+        "source": "riesgo_no_factible",
+        "target": "reparacion_individuos",
+        "relation": "se_relaciona_con"
+      },
+      {
+        "source": "riesgo_no_factible",
+        "target": "validacion_factibilidad",
+        "relation": "se_relaciona_con"
+      },
+      {
+        "source": "criterio_tres_componentes",
+        "target": "objetivo_global",
+        "relation": "describe"
+      },
+      {
+        "source": "criterio_tres_componentes",
+        "target": "siruga",
+        "relation": "requiere_confirmacion_de"
+      },
+      {
+        "source": "sin_optimo_global",
+        "target": "algoritmo_genetico",
+        "relation": "es_limitacion_de"
+      },
+      {
+        "source": "prueba_ruta_corta",
+        "target": "valhalla",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_ruta_corta",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "prueba_unidireccionales",
+        "target": "matriz_distancias",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_unidireccionales",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "prueba_punto_sin_acceso",
+        "target": "validacion_matriz",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_punto_sin_acceso",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "prueba_capacidades",
+        "target": "restriccion_capacidad",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_capacidades",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "prueba_unicidad",
+        "target": "validacion_genotipo",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_unicidad",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "prueba_tres_mejores",
+        "target": "tres_mejores",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_tres_mejores",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "prueba_aptitud",
+        "target": "grafica_aptitud",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_aptitud",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "material_clase_ag",
+        "target": "algoritmo_genetico",
+        "relation": "fundamenta"
+      },
+      {
+        "source": "material_clase_ag",
+        "target": "representacion_individuo",
+        "relation": "fundamenta"
+      },
+      {
+        "source": "material_clase_ag",
+        "target": "grafica_aptitud",
+        "relation": "especifica_medicion_de"
+      },
+      {
+        "source": "referencia_valhalla_route",
+        "target": "limite_valhalla",
+        "relation": "documenta"
+      },
+      {
+        "source": "referencia_valhalla_matrix",
+        "target": "valhalla_matrix",
+        "relation": "documenta"
+      },
+      {
+        "source": "referencia_leaflet",
+        "target": "leaflet",
+        "relation": "documenta"
+      },
+      {
+        "source": "referencia_osm_tiles",
+        "target": "limite_servicios_publicos",
+        "relation": "documenta"
+      }
+    ]
+  },
+  "formal_model": {
+    "sets": {
+      "V": "Conjunto de vehículos disponibles.",
+      "P": "Conjunto de puntos de recolección.",
+      "0": "Centro de operaciones o depósito."
+    },
+    "parameters": {
+      "q_j": "Demanda de residuos del punto j, en kg.",
+      "C_i": "Capacidad máxima del vehículo i, en kg.",
+      "d_ab": "Distancia vial mínima calculada desde la ubicación a hasta la ubicación b, en km, bajo el perfil y la configuración del motor de rutas."
+    },
+    "decision_variables": {
+      "x_ij": {
+        "meaning": "1 si el punto j se asigna al vehículo i; 0 en otro caso.",
+        "type": "binaria"
+      },
+      "p_ij": {
+        "meaning": "Posición del punto j en la secuencia del vehículo i.",
+        "type": "entera/ordinal"
+      },
+      "y_iab": {
+        "meaning": "1 si el vehículo i recorre directamente desde a hasta b; 0 en otro caso.",
+        "type": "binaria",
+        "note": "Puede derivarse de la secuencia del cromosoma; no necesariamente se almacena como gen independiente."
+      }
+    },
+    "objective_components": {
+      "D_salida": "Suma de d_0,primer_punto para cada ruta utilizada.",
+      "D_entre": "Suma de d_punto_consecutivo,punto_siguiente en cada ruta.",
+      "D_regreso": "Suma de d_ultimo_punto,0 para cada ruta utilizada.",
+      "D_total": "D_salida + D_entre + D_regreso."
+    },
+    "objective": "min D_total",
+    "fitness_proposal": {
+      "formula": "A(S) = 1 / (1 + D_total(S))",
+      "applies_to": "Individuos factibles",
+      "interpretation": "A menor distancia total, mayor aptitud.",
+      "status": "Propuesta inicial; debe validarse junto con el mecanismo de tratamiento de individuos infactibles."
+    },
+    "constraints": [
+      "Cada punto se asigna exactamente a un vehículo.",
+      "La suma de demandas asignadas a cada vehículo no supera su capacidad.",
+      "Cada ruta utilizada inicia y termina en el depósito.",
+      "Cada punto aparece exactamente una vez en el conjunto de rutas.",
+      "La demanda de un punto no se divide entre vehículos.",
+      "Cada vehículo realiza como máximo un recorrido.",
+      "Las ubicaciones y conexiones requeridas deben ser válidas en la red vial.",
+      "Los vehículos no utilizados pueden permanecer sin ruta."
+    ],
+    "feasibility_prechecks": {
+      "necessary_conditions": [
+        "La demanda de cada punto no debe superar la mayor capacidad de los vehículos disponibles.",
+        "La demanda total no debe superar la suma de las capacidades de la flota."
+      ],
+      "warning": "Estas condiciones son necesarias pero no suficientes para demostrar que existe una asignación factible cuando las demandas son indivisibles. Se requiere una comprobación adicional o una búsqueda de asignación factible."
+    }
+  },
+  "genetic_algorithm": {
+    "role": "Optimizar conjuntamente la asignación de puntos a vehículos y el orden de visita de cada ruta.",
+    "individual_encoding": {
+      "type": "Secuencia de identificadores de puntos particionada en bloques por vehículo.",
+      "example": "[P03, P01] | [P02] | [P05, P04]",
+      "meaning": "Cada bloque representa el recorrido de un vehículo; el depósito se agrega implícitamente al inicio y al final.",
+      "invariants": [
+        "Cada punto aparece exactamente una vez.",
+        "Ninguna ruta excede la capacidad del vehículo asignado.",
+        "Los puntos no se dividen entre rutas."
+      ],
+      "status": "Codificación conceptual; requiere prueba de operadores y mecanismo de reparación."
+    },
+    "population_parameters_as_inputs": [
+      "population_size",
+      "generations",
+      "crossover_probability",
+      "mutation_probability"
+    ],
+    "operators": {
+      "selection": "Seleccionar padres en función de aptitud y factibilidad; método específico pendiente.",
+      "crossover": "Combinar secuencias sin duplicar ni perder puntos; operador específico pendiente.",
+      "mutation": "Modificar orden o asignación conservando los puntos; operador específico pendiente.",
+      "repair": "Reparar o impedir asignaciones con sobrecarga; estrategia pendiente de diseño.",
+      "elitism": "Conservar al menos el mejor individuo conocido, de acuerdo con el material de clase."
+    },
+    "generation_metrics": {
+      "best_fitness": "Mejor aptitud de la población.",
+      "worst_fitness": "Peor aptitud de la población.",
+      "average_fitness": "Promedio de aptitud de la población.",
+      "measurement_timing": "Después de mutación y antes de la poda, según las diapositivas de clase."
+    },
+    "global_optimum_claim": "No se garantiza que el algoritmo genético encuentre el óptimo global del CVRP; se reportan las mejores soluciones factibles encontradas."
+  },
+  "data_contract": {
+    "inputs": {
+      "depot": {
+        "fields": [
+          "latitude",
+          "longitude"
+        ],
+        "capture": "Selección mediante clic en el mapa o coordenadas geográficas."
+      },
+      "vehicles": {
+        "fields": [
+          "vehicle_id",
+          "capacity_kg"
+        ],
+        "count": "Variable."
+      },
+      "collection_points": {
+        "fields": [
+          "point_id",
+          "latitude",
+          "longitude",
+          "waste_demand_kg"
+        ],
+        "count": "Variable."
+      },
+      "genetic_algorithm": {
+        "fields": [
+          "population_size",
+          "generations",
+          "crossover_probability",
+          "mutation_probability"
+        ]
+      }
+    },
+    "intermediate_data": {
+      "distance_matrix": {
+        "dimensions": "N x N; N es el depósito más todos los puntos de recolección.",
+        "distance": "Distancia vial entre cada par ordenado de ubicaciones.",
+        "directed": "No asumir simetría debido a sentidos de circulación.",
+        "null_policy": "Una conexión nula es un error de conectividad; no debe tratarse como cero.",
+        "calculation_timing": "Una vez por escenario antes de la ejecución del algoritmo genético."
+      },
+      "route_geometry": "Geometría vial recuperada para dibujar los recorridos de los individuos presentados."
+    },
+    "outputs": {
+      "top_three_individuals": "Tres mejores soluciones factibles, ordenadas por menor distancia total.",
+      "per_vehicle_route": "Asignación de puntos, orden de visita, carga asignada, capacidad y distancia de cada vehículo.",
+      "total_fleet_distance": "Distancia total recorrida por toda la flota, en km.",
+      "interactive_map": "Mapa con depósito, puntos y geometrías de rutas diferenciadas.",
+      "fitness_evolution_chart": "Curvas de mejor, peor y promedio de aptitud por generación.",
+      "comparison_table": "Comparación de los tres mejores individuos y sus métricas."
+    }
+  },
+  "architecture": {
+    "components": [
+      {
+        "name": "Interfaz de captura y mapa",
+        "technology": "Leaflet",
+        "responsibility": "Permitir seleccionar depósito y puntos, registrar demandas y mostrar rutas."
+      },
+      {
+        "name": "Datos cartográficos",
+        "technology": "OpenStreetMap",
+        "responsibility": "Proporcionar datos geográficos y de la red vial."
+      },
+      {
+        "name": "Motor de rutas y matriz",
+        "technology": "Valhalla",
+        "responsibility": "Calcular distancias viales y geometría de recorridos."
+      },
+      {
+        "name": "Motor de optimización",
+        "technology": "Python",
+        "responsibility": "Construir y evaluar población, aplicar operadores genéticos y seleccionar las mejores soluciones."
+      },
+      {
+        "name": "Almacenamiento temporal",
+        "technology": "Memoria de ejecución",
+        "responsibility": "Mantener escenario, matriz, población y resultados; sin base de datos persistente en la versión 1."
+      }
+    ],
+    "workflow": [
+      "El usuario selecciona el depósito y registra puntos sobre el mapa.",
+      "El usuario captura la demanda de cada punto y registra vehículos con sus capacidades.",
+      "El usuario configura los parámetros del algoritmo genético.",
+      "El sistema valida coordenadas, demandas, capacidades y conectividad vial.",
+      "Valhalla calcula la matriz de distancias con criterio basado en distancia.",
+      "Python ejecuta el algoritmo genético usando la matriz en memoria.",
+      "El sistema selecciona los tres mejores individuos factibles.",
+      "Valhalla proporciona geometrías de rutas y Leaflet las muestra en el mapa.",
+      "El sistema presenta tablas comparativas y evolución de aptitud."
+    ],
+    "external_services_note": "La visualización de tiles, la cobertura cartográfica y el servicio de ruteo son dependencias distintas. Los servicios públicos pueden tener límites de uso y disponibilidad; se debe permitir configurar proveedores o desplegar servicios propios si la demostración lo requiere."
+  },
+  "scope_v1": {
+    "included": [
+      "Una zona urbana configurable por escenario.",
+      "Un centro de operaciones.",
+      "Cantidad variable de vehículos.",
+      "Capacidades de carga heterogéneas.",
+      "Cantidad variable de puntos de recolección.",
+      "Demanda conocida en kg por punto.",
+      "Mapa geográfico real y red vial disponible.",
+      "Matriz de distancias viales.",
+      "Un recorrido por vehículo.",
+      "Minimización de kilómetros totales.",
+      "Presentación de tres mejores individuos factibles y curvas de aptitud."
+    ],
+    "assumptions": [
+      "Red vial estática durante la optimización.",
+      "Sin bloqueos temporales, accidentes, obras ni tráfico dinámico.",
+      "Se respetan sentidos únicos y restricciones permanentes de circulación presentes en los datos y el perfil.",
+      "Todos los puntos deben tener acceso vial válido.",
+      "La demanda de cada punto es conocida y fija.",
+      "Todos los vehículos comparten un perfil físico de circulación común.",
+      "Las capacidades individuales de carga sí pueden variar.",
+      "Los vehículos utilizados salen y regresan al mismo depósito."
+    ],
+    "excluded": [
+      "Múltiples depósitos.",
+      "Varios viajes por vehículo.",
+      "División de la demanda de un punto entre vehículos.",
+      "Optimización del equilibrio de carga o distancia entre vehículos.",
+      "Optimización de tiempo de conducción o combustible.",
+      "Tráfico en tiempo real.",
+      "Bloqueos temporales, accidentes u obras.",
+      "Clima dinámico.",
+      "Dimensiones y restricciones físicas individuales de cada vehículo.",
+      "Base de datos persistente.",
+      "Escenarios predefinidos obligatorios o terreno vial aleatorio."
+    ]
+  },
+  "technical_debts_and_validation": {
+    "delimited_by_scope": [
+      {
+        "id": "TD-01",
+        "topic": "Tráfico, bloqueos y condiciones cambiantes",
+        "resolution": "Excluidos; red vial estática."
+      },
+      {
+        "id": "TD-02",
+        "topic": "Dimensiones particulares de cada vehículo",
+        "resolution": "Excluidas; perfil de circulación común."
+      },
+      {
+        "id": "TD-03",
+        "topic": "Varios depósitos o viajes",
+        "resolution": "Excluidos; un depósito y un recorrido por vehículo."
+      },
+      {
+        "id": "TD-04",
+        "topic": "Equilibrio de trabajo, tiempo y combustible",
+        "resolution": "Excluidos; única métrica: distancia total."
+      },
+      {
+        "id": "TD-05",
+        "topic": "Puntos sin acceso vial",
+        "resolution": "No se optimizan; se validan y deben corregirse o rechazarse."
+      }
+    ],
+    "implementation_still_required": [
+      {
+        "id": "TD-06",
+        "topic": "Operadores genéticos que preserven todos los puntos",
+        "status": "Diseño y pruebas pendientes."
+      },
+      {
+        "id": "TD-07",
+        "topic": "Reparación o preservación de capacidades",
+        "status": "Estrategia específica pendiente."
+      },
+      {
+        "id": "TD-08",
+        "topic": "Distinguir escenarios imposibles de fallos heurísticos",
+        "status": "Protocolo pendiente; las condiciones de demanda total son solo filtros necesarios."
+      },
+      {
+        "id": "TD-09",
+        "topic": "Manejo de matriz con conexiones nulas",
+        "status": "Validación obligatoria pendiente de implementación."
+      },
+      {
+        "id": "TD-10",
+        "topic": "Errores o indisponibilidad de servicios externos",
+        "status": "Manejo de errores pendiente de implementación."
+      },
+      {
+        "id": "TD-11",
+        "topic": "Comprobar la optimalidad de rutas de Valhalla dentro de sus límites",
+        "status": "Pruebas de integración pendientes."
+      },
+      {
+        "id": "TD-12",
+        "topic": "Confirmar que tres componentes de una sola métrica satisfacen el formato del profesor",
+        "status": "Confirmación académica pendiente."
+      }
+    ],
+    "acceptance_tests": [
+      "Verificar rutas alternativas y seleccionar la menor distancia dentro de los límites declarados.",
+      "Verificar sentidos únicos y posible asimetría d(a,b) != d(b,a).",
+      "Rechazar o corregir ubicaciones sin conexión vial.",
+      "Comprobar que ningún vehículo exceda su capacidad.",
+      "Comprobar que cada punto aparezca exactamente una vez después de cada operador genético.",
+      "Comprobar que los tres resultados presentados sean factibles y estén ordenados por distancia total.",
+      "Comprobar la medición de mejor, peor y promedio de aptitud después de mutación y antes de poda.",
+      "Simular la indisponibilidad de Valhalla y verificar que no se inventen distancias ni rutas."
+    ]
+  },
+  "academic_alignment": {
+    "course": "Fundamentos de Inteligencia Artificial",
+    "class_material": {
+      "file": "2026.10.21 IA.pptx.pdf",
+      "relevant_pages": [
+        8,
+        9,
+        14,
+        15,
+        17,
+        18
+      ],
+      "concepts": [
+        "individuo como solución",
+        "gen como valor",
+        "secuencias ordenadas de identificadores",
+        "mutación de secuencias mediante intercambio",
+        "conservación del mejor individuo",
+        "evolución de mejor, peor y promedio de aptitud"
+      ]
+    },
+    "format_note": "El formato solicita al menos tres variables a optimizar. SIRUGA presenta tres componentes de distancia que se suman en un único objetivo monoobjetivo. Debe confirmarse con el profesor que acepta esta interpretación; no debe describirse como optimización multiobjetivo."
+  },
+  "references": [
+    {
+      "id": "ref_valhalla_route",
+      "type": "official_documentation",
+      "title": "Valhalla Route API Reference",
+      "url": "https://valhalla.github.io/valhalla/api/route/api-reference/",
+      "supports": [
+        "shortest es un costo basado en distancia",
+        "shortest por sí solo no desactiva la poda jerárquica",
+        "disable_hierarchy_pruning puede permitir la ruta óptima real dentro del límite configurado y con costo de rendimiento"
+      ]
+    },
+    {
+      "id": "ref_valhalla_matrix",
+      "type": "official_documentation",
+      "title": "Valhalla Matrix API Reference",
+      "url": "https://valhalla.github.io/valhalla/api/matrix/api-reference/",
+      "supports": [
+        "matriz de distancias entre fuentes y destinos",
+        "resultados ordenados por fila",
+        "conexiones no encontradas devuelven null"
+      ]
+    },
+    {
+      "id": "ref_leaflet",
+      "type": "official_documentation",
+      "title": "Leaflet Reference",
+      "url": "https://leafletjs.com/reference.html",
+      "supports": [
+        "evento click del mapa",
+        "coordenadas geográficas del evento"
+      ]
+    },
+    {
+      "id": "ref_osm_tiles",
+      "type": "official_policy",
+      "title": "OpenStreetMap Tile Usage Policy",
+      "url": "https://operations.osmfoundation.org/policies/tiles/",
+      "supports": [
+        "atribución visible",
+        "disponibilidad best-effort",
+        "límites de uso y descarga",
+        "requisitos de caché e identificación"
+      ]
+    },
+    {
+      "id": "ref_class_slides",
+      "type": "course_material",
+      "title": "Fundamentos de Inteligencia Artificial - Algoritmos Evolutivos",
+      "file": "2026.10.21 IA.pptx.pdf",
+      "pages": [
+        8,
+        9,
+        14,
+        15,
+        17,
+        18
+      ],
+      "supports": [
+        "representación de individuos y genes",
+        "secuencias de identificadores",
+        "mutación",
+        "conservación del mejor individuo",
+        "gráficas de mejor, peor y promedio de aptitud"
+      ]
+    }
+  ]
+}
