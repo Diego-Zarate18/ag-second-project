@@ -1,32 +1,47 @@
 {
   "schema": "knowledge_graph",
-  "schema_version": "1.0.0",
+  "schema_version": "2.0.0",
   "language": "es-MX",
   "metadata": {
     "project_id": "SIRUGA",
     "project_title": "Sistema inteligente basado en algoritmos genéticos para la optimización de rutas de recolección de residuos urbanos mediante una flota heterogénea de vehículos y una red vial geográfica",
-    "generated_date": "2026-11-15",
-    "purpose": "Grafo de conocimiento para documentar el contexto, formulación, alcance, supuestos, restricciones, tecnologías, entradas, salidas, algoritmo genético, validaciones y decisiones del proyecto.",
+    "generated_date": "2026-11-24",
+    "purpose": "Grafo de conocimiento para documentar el contexto, formulación, alcance, supuestos, restricciones, base de conocimiento, tecnologías, entradas, salidas, algoritmo genético, validaciones, decisiones y revisión adversaria del proyecto.",
     "status_legend": {
       "acordado": "Decisión tomada durante el diseño de la propuesta.",
       "supuesto_delimitado": "Condición asumida expresamente para la versión 1.",
       "fuera_de_alcance": "Característica excluida intencionalmente de la versión 1.",
       "pendiente_de_diseno_y_pruebas": "Requiere especificación e implementación antes de considerarse resuelta en ejecución.",
       "pendiente_de_ejecucion": "Prueba definida pero todavía no ejecutada.",
-      "referencia_tecnica": "Documentación externa consultada para fundamentar una decisión."
-    }
+      "referencia_tecnica": "Documentación externa consultada para fundamentar una decisión.",
+      "corregido_v2": "Elemento modificado o agregado en la revisión adversaria de la versión 2.0.",
+      "decision_propuesta": "Decisión de diseño propuesta en la versión 2.0 que debe confirmarse con el equipo o el profesor.",
+      "valor_de_ejemplo": "Valor ilustrativo que debe sustituirse por datos calibrados de la zona.",
+      "valor_generado": "Valor de referencia generado para el proyecto, acordado con el profesor; se puede cambiar en la interfaz."
+    },
+    "graph_version": "2.1",
+    "previous_version": "1.0 (2026-11-15): monoobjetivo, minimizar solo la distancia total, sin tráfico ni hora de salida."
   },
   "project": {
     "id": "siruga",
     "acronym": "SIRUGA",
     "name": "Sistema Inteligente de Rutas Urbanas mediante Algoritmos Genéticos",
-    "problem_model": "CVRP con un depósito, flota heterogénea en capacidad y demandas no divisibles",
-    "optimization_type": "monoobjetivo",
-    "primary_objective": "Minimizar la distancia total recorrida por todos los vehículos utilizados, expresada en kilómetros.",
-    "scope_version": "1.0",
-    "scope_status": "Alcance funcional y supuestos delimitados. La implementación, integración y pruebas todavía están pendientes.",
-    "nodes_count": 97,
-    "edges_count": 157
+    "problem_model": "CVRP dependiente del tiempo (TD-CVRP) con un depósito, flota heterogénea, decisión de qué camiones se envían y a qué hora salen, tráfico por franja horaria y demandas no divisibles",
+    "optimization_type": "multiobjetivo (tres objetivos) resuelto mediante suma ponderada normalizada",
+    "scope_version": "2.0",
+    "scope_status": "Alcance ampliado con tiempo, costo, tráfico por franja horaria y hora de salida. La implementación, integración y pruebas todavía están pendientes.",
+    "nodes_count": 157,
+    "edges_count": 311,
+    "objectives": [
+      "Minimizar el tiempo de recorrido total de la flota, en minutos.",
+      "Minimizar el costo total de operación, en pesos mexicanos (MXN).",
+      "Minimizar la distancia total recorrida por la flota, en kilómetros."
+    ],
+    "decision_variables_summary": [
+      "La ruta de cada camión: qué puntos visita y en qué orden.",
+      "Los camiones que serán enviados.",
+      "La hora de salida de cada camión enviado."
+    ]
   },
   "graph": {
     "nodes": [
@@ -34,12 +49,16 @@
         "id": "siruga",
         "type": "project",
         "name": "SIRUGA",
-        "description": "Sistema inteligente basado en algoritmos genéticos para la optimización de rutas de recolección de residuos urbanos mediante una flota heterogénea de vehículos y una red vial geográfica.",
+        "description": "Sistema inteligente basado en algoritmos genéticos que decide qué camiones de recolección se envían, a qué hora sale cada uno y qué ruta sigue, minimizando tiempo de recorrido, costo y distancia sobre una red vial geográfica con tráfico variable por horario.",
         "status": "propuesta_formal_delimitada",
         "attributes": {
-          "version_alcance": "1.0",
-          "tipo_optimizacion": "monoobjetivo",
-          "objetivo_principal": "minimizar la distancia total recorrida por la flota",
+          "version_alcance": "2.0",
+          "tipo_optimizacion": "multiobjetivo escalarizado (suma ponderada normalizada)",
+          "objetivos": [
+            "tiempo de recorrido",
+            "costo de operación",
+            "distancia total"
+          ],
           "estado": "alcance funcional y supuestos delimitados; implementación aún no validada"
         }
       },
@@ -47,40 +66,42 @@
         "id": "contexto_urbano",
         "type": "context",
         "name": "Contexto de recolección urbana",
-        "description": "Servicio urbano que atiende puntos de recolección distribuidos en diferentes colonias o sectores, utilizando una flota de vehículos que parte de un centro de operaciones.",
+        "description": "Servicio urbano que atiende puntos de recolección distribuidos en diferentes colonias o sectores, utilizando una flota de vehículos que parte de un centro de operaciones. La velocidad en las calles cambia a lo largo del día por el tráfico en ciertos horarios.",
         "status": "acordado"
       },
       {
         "id": "problema",
         "type": "problem",
         "name": "Planificación de rutas y asignación de vehículos",
-        "description": "Determinar qué vehículo atiende cada punto y en qué orden lo visita, minimizando los kilómetros totales y respetando las capacidades individuales de carga.",
+        "description": "Decidir qué camiones se envían, a qué hora sale cada uno, qué puntos atiende y en qué orden los visita, minimizando el tiempo de recorrido, el costo de operación y la distancia total, y respetando las capacidades de carga y la jornada de trabajo.",
         "status": "acordado"
       },
       {
         "id": "solucion",
         "type": "solution",
         "name": "Optimización mediante algoritmo genético",
-        "description": "Sistema configurable que obtiene distancias viales y utiliza un algoritmo genético propio para buscar asignaciones y secuencias de visita factibles de menor distancia total.",
+        "description": "Sistema configurable que obtiene distancias y tiempos viales, aplica un perfil de tráfico por franja horaria y utiliza un algoritmo genético propio para buscar combinaciones factibles de camiones enviados, horas de salida y rutas con el mejor equilibrio entre tiempo, costo y distancia.",
         "status": "acordado"
       },
       {
         "id": "modelo_cvrp",
         "type": "problem_model",
-        "name": "Capacitated Vehicle Routing Problem (CVRP)",
-        "description": "Problema de ruteo de vehículos con un depósito y demandas en los puntos, donde cada vehículo tiene una capacidad máxima. En este proyecto las capacidades pueden variar entre vehículos.",
+        "name": "CVRP dependiente del tiempo (TD-CVRP)",
+        "description": "Problema de ruteo de vehículos con capacidad, un depósito y demandas en los puntos, donde el tiempo de viaje entre dos ubicaciones depende de la hora en que se recorre el tramo. Las capacidades y los costos pueden variar entre vehículos.",
         "status": "modelo_de_referencia",
         "attributes": {
-          "variante": "flota heterogénea en capacidad",
+          "variante": "flota heterogénea en capacidad y costos; tiempos dependientes de la hora",
           "depositos": 1,
-          "demanda_divisible": false
+          "demanda_divisible": false,
+          "dependiente_del_tiempo": true,
+          "flota_limitada": true
         }
       },
       {
         "id": "entorno",
         "type": "environment",
         "name": "Entorno geográfico urbano configurable",
-        "description": "Una zona urbana elegida por el usuario dentro de la cobertura de los datos disponibles en la instancia de Valhalla. El escenario se construye en tiempo de ejecución; no depende de escenarios fijos en código o base de datos.",
+        "description": "Una zona urbana elegida por el usuario dentro de la cobertura de los datos disponibles en la instancia de Valhalla, con un perfil de tráfico por franja horaria definido para esa zona. El escenario se construye en tiempo de ejecución; no depende de escenarios fijos en código o base de datos.",
         "status": "acordado"
       },
       {
@@ -94,7 +115,7 @@
         "id": "deposito",
         "type": "environment_entity",
         "name": "Centro de operaciones o depósito",
-        "description": "Ubicación geográfica desde la que parten los vehículos utilizados y a la que regresan al finalizar sus recorridos.",
+        "description": "Ubicación geográfica desde la que parten los camiones enviados y a la que regresan al finalizar sus recorridos. En la versión 2.0 también se asume como lugar de descarga de los residuos.",
         "status": "acordado",
         "attributes": {
           "cantidad_por_escenario": 1,
@@ -124,19 +145,24 @@
         "id": "flota",
         "type": "environment_entity",
         "name": "Flota de vehículos",
-        "description": "Conjunto de vehículos disponibles para atender los puntos de recolección. La cantidad de vehículos es variable y cada uno puede tener una capacidad de carga distinta.",
+        "description": "Conjunto de vehículos disponibles. El agente decide cuáles se envían; cada uno puede tener capacidad, consumo de combustible y costos distintos.",
         "status": "acordado"
       },
       {
         "id": "vehiculo",
         "type": "environment_entity",
         "name": "Vehículo de recolección",
-        "description": "Unidad que puede realizar como máximo un recorrido en el escenario y tiene una capacidad máxima de carga en kilogramos.",
+        "description": "Unidad que, si es enviada, realiza un solo recorrido en la jornada. Tiene capacidad máxima de carga, peso en vacío, consumo de combustible y costos propios.",
         "status": "acordado",
         "attributes": {
           "campos": [
             "identificador",
-            "capacidad_maxima_kg"
+            "capacidad_maxima_kg",
+            "peso_vacio_kg",
+            "consumo_vacio_l_km",
+            "incremento_consumo_l_km_por_kg",
+            "costo_fijo_envio_mxn",
+            "costo_hora_tripulacion_mxn"
           ],
           "viajes_por_jornada": 1
         }
@@ -145,7 +171,7 @@
         "id": "red_vial",
         "type": "environment_entity",
         "name": "Red vial urbana",
-        "description": "Grafo vial basado en datos cartográficos, con conexiones, sentidos de circulación y restricciones permanentes representadas en los datos.",
+        "description": "Grafo vial basado en datos cartográficos, con conexiones, sentidos de circulación y restricciones permanentes. Su estructura no cambia durante la ejecución; lo que cambia según la hora es la velocidad de circulación.",
         "status": "acordado"
       },
       {
@@ -174,14 +200,14 @@
         "id": "decision_variables",
         "type": "decision_variables",
         "name": "Variables de decisión",
-        "description": "Elementos controlados por el algoritmo: asignación de puntos a vehículos, orden de visita y conexiones consecutivas derivadas de cada recorrido.",
-        "status": "acordado"
+        "description": "Elementos controlados por el agente: la ruta de cada camión, los camiones que se envían y la hora de salida de cada camión enviado.",
+        "status": "corregido_v2"
       },
       {
         "id": "x_asignacion",
         "type": "decision_variable",
         "name": "Asignación de puntos x_ij",
-        "description": "Variable binaria conceptual que indica si el punto j se asigna al vehículo i.",
+        "description": "Variable binaria conceptual que indica si el punto j se asigna al vehículo i. Es parte de la ruta.",
         "status": "definicion_conceptual",
         "attributes": {
           "dominio": "{0,1}",
@@ -192,7 +218,7 @@
         "id": "p_orden",
         "type": "decision_variable",
         "name": "Orden de visita p_ij",
-        "description": "Posición que ocupa el punto j dentro de la ruta del vehículo i.",
+        "description": "Posición que ocupa el punto j dentro de la ruta del vehículo i. Es parte de la ruta.",
         "status": "definicion_conceptual",
         "attributes": {
           "dominio": "posición entera dentro de la ruta"
@@ -202,22 +228,21 @@
         "id": "y_arco",
         "type": "decision_variable",
         "name": "Conexión consecutiva y_iab",
-        "description": "Variable binaria conceptual que indica si el vehículo i se desplaza directamente desde la ubicación a hasta la ubicación b. Puede derivarse de la secuencia codificada en el individuo.",
+        "description": "Variable binaria conceptual que indica si el vehículo i se desplaza directamente desde la ubicación a hasta la ubicación b. Se deriva de la secuencia codificada en el individuo y es parte de la ruta.",
         "status": "definicion_conceptual",
         "attributes": {
           "dominio": "{0,1}"
         }
       },
       {
-        "id": "objetivo_global",
+        "id": "obj_distancia",
         "type": "optimization_objective",
-        "name": "Minimizar la distancia total de la flota",
-        "description": "Minimizar la suma de las distancias de salida, entre puntos consecutivos y de regreso al depósito, para todos los vehículos utilizados.",
+        "name": "Objetivo 3: minimizar la distancia total",
+        "description": "Minimizar la suma de las distancias de salida, entre puntos consecutivos y de regreso al depósito, para todos los camiones enviados.",
         "status": "acordado",
         "attributes": {
           "formula": "min D_total",
-          "unidad": "km",
-          "tipo": "monoobjetivo"
+          "unidad": "km"
         }
       },
       {
@@ -254,7 +279,7 @@
         "id": "distancia_total",
         "type": "derived_metric",
         "name": "Distancia total recorrida",
-        "description": "Métrica total que suma los tres componentes anteriores para todos los vehículos utilizados.",
+        "description": "Métrica que suma la distancia de salida, entre puntos y de regreso para todos los camiones enviados.",
         "status": "acordado",
         "attributes": {
           "formula": "D_total = D_salida + D_entre + D_regreso",
@@ -265,13 +290,14 @@
         "id": "aptitud",
         "type": "fitness_function",
         "name": "Función de aptitud",
-        "description": "Para individuos factibles, se propone una aptitud inversamente proporcional a la distancia total, de modo que recorridos más cortos obtengan mayor aptitud.",
-        "status": "propuesta_por_validar",
+        "description": "Para individuos factibles, la aptitud es inversamente proporcional a una calificación combinada de tiempo, costo y distancia. Cada objetivo se divide entre un valor de referencia fijo para la ejecución, de modo que las tres unidades sean comparables, y se pondera con pesos definidos por el usuario.",
+        "status": "acordado",
         "attributes": {
-          "formula": "A(S) = 1 / (1 + D_total(S))",
-          "unidad_distancia": "km",
+          "formula": "A(S) = 1 / (1 + F(S));  F(S) = w_t*T_total/T_ref + w_c*C_total/C_ref + w_d*D_total/D_ref",
+          "pesos": "w_t = w_c = w_d = 1/3 por defecto; capturados como entrada",
+          "valores_de_referencia": "T_ref, C_ref y D_ref se calculan una sola vez al inicio de la ejecución con una solución heurística (p. ej., vecino más cercano) y no cambian entre generaciones",
           "dominio": "solo individuos factibles",
-          "nota": "La política exacta para reparar o tratar individuos infactibles debe especificarse y probarse durante el diseño del algoritmo."
+          "nota": "Si las referencias cambiaran en cada generación, la aptitud no sería comparable entre generaciones y la gráfica de evolución perdería sentido. La política para individuos infactibles sigue pendiente."
         }
       },
       {
@@ -305,7 +331,7 @@
         "id": "restriccion_un_viaje",
         "type": "constraint",
         "name": "Un recorrido por vehículo",
-        "description": "Cada vehículo realiza como máximo un recorrido durante el escenario o jornada modelada.",
+        "description": "Cada camión enviado realiza exactamente un recorrido durante la jornada; un camión no enviado no realiza ninguno.",
         "status": "acordado"
       },
       {
@@ -348,24 +374,25 @@
         "id": "valhalla",
         "type": "technology",
         "name": "Valhalla",
-        "description": "Motor de cálculo de rutas sobre una red vial derivada de datos cartográficos. Se utilizará para calcular matrices de distancias y geometrías de recorridos.",
+        "description": "Motor de cálculo de rutas sobre una red vial derivada de datos cartográficos. Se utilizará para calcular la matriz de distancias, la matriz de tiempos en flujo libre y las geometrías de recorridos.",
         "status": "seleccionada",
         "attributes": {
-          "rol": "motor de rutas y matriz de distancias",
+          "rol": "motor de rutas y matrices de distancia y tiempo base",
           "perfil_previsto": "truck con parámetros comunes a toda la flota",
-          "criterio": "shortest=true y disable_hierarchy_pruning=true cuando el límite operativo de Valhalla lo permita"
+          "criterio": "shortest=true y disable_hierarchy_pruning=true cuando el límite operativo de Valhalla lo permita",
+          "trafico": "La instancia no incluye datos de tráfico: OpenStreetMap no contiene velocidades históricas. El tráfico se aplica después mediante el perfil de tráfico por franja."
         }
       },
       {
         "id": "valhalla_matrix",
         "type": "technology_component",
         "name": "Valhalla Time-Distance Matrix",
-        "description": "Servicio que calcula distancias entre conjuntos de ubicaciones y devuelve resultados organizados como matriz. Las conexiones no encontradas pueden aparecer como null.",
+        "description": "Servicio que calcula distancias y tiempos entre conjuntos de ubicaciones y devuelve resultados organizados como matriz. Las conexiones no encontradas pueden aparecer como null.",
         "status": "seleccionado",
         "attributes": {
           "uso": "solicitar matriz cuadrada con el conjunto de ubicaciones como fuentes y destinos",
-          "salida_relevante": "distances",
-          "unidades_salida": "normalizar y documentar en kilómetros"
+          "salida_relevante": "distances y times (tiempo base en flujo libre del camino elegido)",
+          "unidades_salida": "normalizar y documentar distancias en km y tiempos en minutos"
         }
       },
       {
@@ -409,11 +436,12 @@
       {
         "id": "matriz_distancias",
         "type": "data_structure",
-        "name": "Matriz de distancias viales",
-        "description": "Estructura N x N con la distancia calculada entre cada par ordenado de ubicaciones, incluyendo depósito y puntos de recolección. No se debe asumir simetría: d(a,b) puede diferir de d(b,a) por sentidos de circulación.",
+        "name": "Matrices de distancia y tiempo base",
+        "description": "Estructuras N x N con la distancia y el tiempo en flujo libre entre cada par ordenado de ubicaciones, incluido el depósito. No se asume simetría. El tiempo base se ajusta después con el perfil de tráfico según la hora en que se recorre cada tramo.",
         "status": "diseño_acordado",
         "attributes": {
           "dimensiones": "N x N; N = 1 + cantidad de puntos de recolección",
+          "contenido": "d_ab en km y t0_ab en minutos para el mismo camino",
           "se_calcula": "una vez por escenario, antes del algoritmo genético",
           "se_usa_en": "evaluación de individuos",
           "manejo_null": "rechazar o corregir escenario/ubicación; nunca sustituir null por cero"
@@ -423,54 +451,59 @@
         "id": "representacion_individuo",
         "type": "genetic_encoding",
         "name": "Representación del individuo",
-        "description": "Representación conceptual mediante una secuencia de identificadores de puntos, particionada en rutas por separadores que identifican los vehículos. Cada punto debe aparecer exactamente una vez.",
+        "description": "Cada individuo indica qué camiones se envían, la hora de salida de cada uno y su secuencia de puntos. Cada punto aparece exactamente una vez; los camiones no enviados no tienen ruta ni hora.",
         "status": "propuesta_de_diseno_pendiente_de_pruebas",
         "attributes": {
-          "ejemplo": "[P03, P01] | [P02] | [P05, P04]",
-          "significado": "cada bloque corresponde al recorrido de un vehículo",
-          "restricciones": "sin puntos duplicados ni omitidos; respetar capacidades"
+          "ejemplo": "V2@06:30:[P03, P01] | V5@07:15:[P02, P05, P04]",
+          "significado": "cada bloque es un camión enviado, su hora de salida y el orden de visita",
+          "genes": [
+            "identificador del camión",
+            "hora de salida discretizada",
+            "secuencia de puntos"
+          ],
+          "restricciones": "sin puntos duplicados ni omitidos; respetar capacidades; hora dentro de la ventana de salida; regreso antes del cierre de la jornada; un bloque por camión como máximo"
         }
       },
       {
         "id": "algoritmo_genetico",
         "type": "algorithm",
         "name": "Algoritmo genético propio",
-        "description": "Método de búsqueda basado en una población de individuos que representan asignaciones y secuencias de rutas. Evoluciona soluciones mediante selección, cruza, mutación y conservación del mejor individuo.",
+        "description": "Método de búsqueda basado en una población de individuos que representan camiones enviados, horas de salida y rutas. Evoluciona soluciones mediante selección, cruza, mutación, poda y conservación del mejor individuo.",
         "status": "tecnologia_metodologica_acordada"
       },
       {
         "id": "seleccion",
         "type": "genetic_operator",
         "name": "Selección",
-        "description": "Selecciona individuos de la población para reproducción de acuerdo con su aptitud y factibilidad.",
+        "description": "Selecciona individuos para reproducción según su aptitud combinada y su factibilidad.",
         "status": "metodo_general_acordado; estrategia_especifica_pendiente"
       },
       {
         "id": "cruza",
         "type": "genetic_operator",
         "name": "Cruza",
-        "description": "Combina información de dos individuos para generar descendencia, preservando la integridad de la permutación de puntos y la estructura de rutas.",
+        "description": "Combina dos individuos sin duplicar ni perder puntos. La hora de salida de cada camión se hereda del padre que aporta su ruta.",
         "status": "metodo_general_acordado; operador_especifico_pendiente"
       },
       {
         "id": "mutacion",
         "type": "genetic_operator",
         "name": "Mutación",
-        "description": "Modifica el orden de visita o la asignación de puntos sin perder ni duplicar ubicaciones; la estrategia concreta debe respetar las capacidades o activar reparación.",
+        "description": "Modifica la solución sin perder ni duplicar puntos. Tipos previstos: intercambiar el orden de dos puntos, mover un punto a otro camión, adelantar o atrasar la hora de salida un paso, y enviar o retirar un camión reasignando sus puntos. Debe respetar las capacidades y la jornada o activar reparación.",
         "status": "metodo_general_acordado; operador_especifico_pendiente"
       },
       {
         "id": "reparacion_individuos",
         "type": "algorithm_mechanism",
         "name": "Reparación o preservación de factibilidad",
-        "description": "Mecanismo por diseñar para corregir individuos que excedan capacidades o para impedir que los operadores genéticos produzcan soluciones inválidas.",
+        "description": "Mecanismo por diseñar para corregir individuos que excedan capacidades, salgan fuera de la ventana permitida o regresen después del cierre de la jornada, o para impedir que los operadores produzcan soluciones inválidas.",
         "status": "pendiente_de_diseno_y_pruebas"
       },
       {
         "id": "elitismo",
         "type": "algorithm_mechanism",
         "name": "Conservación del mejor individuo",
-        "description": "Se conservará al menos el mejor individuo conocido para evitar perder la mejor solución encontrada durante la evolución.",
+        "description": "Se conserva al menos el mejor individuo de cada generación para no perder la mejor solución encontrada. El elitismo no garantiza por sí solo conservar tres soluciones distintas; para eso existe el archivo de mejores soluciones.",
         "status": "requisito_academico"
       },
       {
@@ -484,14 +517,14 @@
         "id": "tres_mejores",
         "type": "output",
         "name": "Tres mejores individuos factibles",
-        "description": "Tres soluciones factibles con menor distancia total, ordenadas de acuerdo con la aptitud o distancia total.",
+        "description": "Tres soluciones factibles y distintas con mejor aptitud combinada, tomadas del archivo de mejores soluciones. Se presentan con su tiempo, costo y distancia por separado.",
         "status": "salida_obligatoria"
       },
       {
         "id": "grafica_aptitud",
         "type": "output",
         "name": "Gráfica de evolución de aptitud",
-        "description": "Gráfica con tres curvas: mejor aptitud, peor aptitud y aptitud promedio por generación. Según las diapositivas de clase, las métricas se registran después de mutación y antes de poda.",
+        "description": "Gráfica con tres curvas: mejor, peor y promedio de la aptitud combinada por generación, registradas después de mutación y antes de poda. Opcionalmente se grafican el tiempo, el costo y la distancia del mejor individuo por generación.",
         "status": "salida_obligatoria"
       },
       {
@@ -505,7 +538,7 @@
         "id": "tabla_resultados",
         "type": "output",
         "name": "Tabla comparativa de soluciones",
-        "description": "Tabla por individuo y vehículo con puntos asignados, orden de visita, carga total, capacidad utilizada y distancia recorrida; incluye distancia total de la flota.",
+        "description": "Tabla por individuo y camión con puntos asignados, orden de visita, hora de salida, hora de regreso, carga total, capacidad utilizada, tiempo, costo y distancia; incluye totales de la flota y camiones no enviados.",
         "status": "salida_obligatoria"
       },
       {
@@ -525,12 +558,17 @@
         "id": "entrada_vehiculos",
         "type": "input",
         "name": "Entrada: flota de vehículos",
-        "description": "Lista de vehículos con identificador y capacidad máxima de carga en kilogramos.",
+        "description": "Lista de vehículos disponibles con capacidad, peso en vacío, consumo de combustible y costos.",
         "status": "acordado",
         "attributes": {
           "campos": [
             "identificador",
-            "capacidad_maxima_kg"
+            "capacidad_maxima_kg",
+            "peso_vacio_kg",
+            "consumo_vacio_l_km",
+            "incremento_consumo_l_km_por_kg",
+            "costo_fijo_envio_mxn",
+            "costo_hora_tripulacion_mxn"
           ]
         }
       },
@@ -553,7 +591,7 @@
         "id": "entrada_parametros_ag",
         "type": "input",
         "name": "Entrada: parámetros del algoritmo genético",
-        "description": "Parámetros configurables para la ejecución: tamaño de población, número de generaciones, probabilidad de cruza y probabilidad de mutación.",
+        "description": "Parámetros configurables: tamaño de población, número de generaciones, probabilidad de cruza, probabilidad de mutación y pesos de los tres objetivos.",
         "status": "acordado"
       },
       {
@@ -567,21 +605,21 @@
         "id": "flujo_interfaz",
         "type": "workflow",
         "name": "Configuración del escenario",
-        "description": "El usuario selecciona el depósito, agrega puntos mediante clics sobre el mapa y registra la demanda; después registra los vehículos y sus capacidades y configura los parámetros del algoritmo.",
+        "description": "El usuario selecciona el depósito, agrega puntos en el mapa con su demanda, registra los vehículos con sus costos, define la jornada y el perfil de tráfico, captura los costos generales y configura el algoritmo.",
         "status": "acordado"
       },
       {
         "id": "flujo_matriz",
         "type": "workflow",
         "name": "Preparación de distancias",
-        "description": "El sistema solicita a Valhalla la matriz de distancias para las ubicaciones del escenario, comprueba que las conexiones necesarias sean válidas y normaliza las distancias a kilómetros antes de iniciar la optimización.",
+        "description": "El sistema solicita a Valhalla las matrices de distancia y tiempo base, comprueba que las conexiones sean válidas y normaliza unidades a kilómetros y minutos antes de optimizar.",
         "status": "acordado"
       },
       {
         "id": "flujo_optimizacion",
         "type": "workflow",
         "name": "Ejecución de optimización",
-        "description": "El algoritmo genera la población, evalúa factibilidad y aptitud, aplica selección, cruza y mutación, conserva el mejor individuo y registra las métricas de cada generación.",
+        "description": "El algoritmo calcula las referencias de normalización, genera la población, evalúa factibilidad y aptitud simulando cada recorrido hora por hora con el perfil de tráfico, aplica selección, cruza, mutación y poda, conserva el mejor individuo, actualiza el archivo de mejores y registra las métricas.",
         "status": "acordado_en_alto_nivel"
       },
       {
@@ -595,15 +633,15 @@
         "id": "supuesto_red_estatica",
         "type": "assumption",
         "name": "Red vial estática",
-        "description": "La red vial no cambia durante la ejecución. No se simulan cierres temporales, accidentes, obras ni bloqueos.",
+        "description": "La estructura de la red vial no cambia durante la ejecución: no se simulan cierres temporales, accidentes, obras ni bloqueos. Solo la velocidad varía por franja horaria.",
         "status": "supuesto_delimitado"
       },
       {
-        "id": "supuesto_sin_trafico",
+        "id": "supuesto_trafico_franjas",
         "type": "assumption",
-        "name": "Sin tráfico dinámico",
-        "description": "No se modelan congestionamientos ni velocidades variables en tiempo real. El criterio de optimización es distancia, no duración del viaje.",
-        "status": "fuera_de_alcance"
+        "name": "Tráfico por franja horaria",
+        "description": "El tráfico se modela con un perfil generado de día hábil: un factor de lentitud por franja horaria, igual para toda la zona, que multiplica el tiempo sin tráfico. No se usa tráfico en tiempo real.",
+        "status": "supuesto_delimitado"
       },
       {
         "id": "supuesto_restricciones_permanentes",
@@ -630,7 +668,7 @@
         "id": "supuesto_perfil_comun",
         "type": "assumption",
         "name": "Perfil físico común de circulación",
-        "description": "Todos los vehículos utilizan el mismo perfil físico de circulación en Valhalla; las diferencias individuales modeladas corresponden a capacidad de carga, no a dimensiones, peso bruto o restricciones físicas específicas.",
+        "description": "Todos los vehículos utilizan el mismo perfil físico de circulación en Valhalla y siguen el mismo camino entre dos ubicaciones. Las diferencias individuales modeladas son capacidad, consumo y costos, no dimensiones ni restricciones físicas.",
         "status": "supuesto_delimitado"
       },
       {
@@ -658,14 +696,7 @@
         "id": "fuera_equilibrio",
         "type": "out_of_scope",
         "name": "Equilibrio de carga o distancia entre vehículos",
-        "description": "No se busca repartir equitativamente el trabajo o los kilómetros. La distancia total de la flota es el único objetivo.",
-        "status": "fuera_de_alcance"
-      },
-      {
-        "id": "fuera_tiempo_combustible",
-        "type": "out_of_scope",
-        "name": "Optimización de tiempo y combustible",
-        "description": "El tiempo de conducción y el consumo de combustible no forman parte de la función objetivo ni se presentan como objetivos optimizados.",
+        "description": "No se busca repartir equitativamente el trabajo, la carga o los kilómetros entre camiones. Los objetivos son tiempo, costo y distancia totales.",
         "status": "fuera_de_alcance"
       },
       {
@@ -686,7 +717,7 @@
         "id": "validacion_capacidad_basica",
         "type": "validation_rule",
         "name": "Validaciones necesarias de capacidad",
-        "description": "Antes de optimizar se comprobarán condiciones necesarias como que ninguna demanda individual exceda la mayor capacidad disponible y que la demanda total no supere la capacidad total de la flota. Estas condiciones no bastan por sí solas para demostrar que existe una asignación factible cuando las demandas no se pueden dividir.",
+        "description": "Antes de optimizar se comprobará que ninguna demanda individual exceda la mayor capacidad disponible y que la demanda total no supere la capacidad total de la flota. Estas condiciones son necesarias pero no suficientes cuando las demandas no se pueden dividir.",
         "status": "regla_acordada; comprobacion_de_factibilidad_completa_pendiente"
       },
       {
@@ -706,15 +737,15 @@
       {
         "id": "validacion_factibilidad",
         "type": "validation_rule",
-        "name": "Factibilidad de capacidad",
-        "description": "Las soluciones presentadas como mejores deben respetar la capacidad de cada vehículo. La estrategia definitiva para construir, reparar o penalizar individuos infactibles aún debe diseñarse y probarse.",
+        "name": "Factibilidad de capacidad y jornada",
+        "description": "Las soluciones presentadas como mejores deben respetar la capacidad de cada camión, la ventana de salida y el cierre de la jornada. La estrategia para construir, reparar o penalizar individuos infactibles aún debe diseñarse y probarse.",
         "status": "requisito_obligatorio; mecanismo_pendiente"
       },
       {
         "id": "limite_valhalla",
         "type": "technical_limit",
         "name": "Límite operativo de búsqueda de Valhalla",
-        "description": "shortest cambia el costo a una métrica basada en distancia, pero por sí solo no desactiva la poda jerárquica. disable_hierarchy_pruning puede permitir la ruta óptima real dentro del límite de distancia configurado, con impacto en rendimiento; por encima de ese límite puede ignorarse.",
+        "description": "shortest cambia el costo a una métrica basada en distancia, pero por sí solo no desactiva la poda jerárquica. disable_hierarchy_pruning puede permitir la ruta óptima real dentro del límite de distancia configurado, con impacto en rendimiento. Con shortest=true el tiempo devuelto es el del camino más corto, no el del camino más rápido.",
         "status": "limitacion_documentada; limite_de_instancia_por_definir",
         "attributes": {
           "opciones": {
@@ -748,9 +779,9 @@
       {
         "id": "criterio_tres_componentes",
         "type": "academic_note",
-        "name": "Tres componentes de una única métrica",
-        "description": "Las variables de salida/optimización se dividen en distancia de salida, distancia entre puntos y distancia de regreso para mostrar la composición de la métrica solicitada. Matemáticamente son componentes de un solo objetivo, no tres objetivos independientes. Confirmar que esta interpretación satisface al profesor.",
-        "status": "riesgo_academico_pendiente_de_confirmacion"
+        "name": "Tres objetivos reales y su relación",
+        "description": "Las variables a optimizar son tiempo, costo y distancia; el problema es multiobjetivo y se resuelve con una suma ponderada normalizada con pesos iguales, decisión del equipo. Los objetivos están correlacionados, así que la distancia influye más de un tercio; se documenta y se revisa con la prueba de sensibilidad de pesos.",
+        "status": "acordado"
       },
       {
         "id": "prueba_ruta_corta",
@@ -791,28 +822,28 @@
         "id": "prueba_tres_mejores",
         "type": "test",
         "name": "Prueba de los tres mejores individuos",
-        "description": "Comprobar que las tres soluciones presentadas sean factibles, distintas cuando existan alternativas y ordenadas por distancia total ascendente.",
+        "description": "Comprobar que las tres soluciones presentadas sean factibles, distintas cuando existan alternativas y ordenadas por aptitud combinada, mostrando tiempo, costo y distancia de cada una.",
         "status": "pendiente_de_ejecucion"
       },
       {
         "id": "prueba_aptitud",
         "type": "test",
         "name": "Prueba de evolución de aptitud",
-        "description": "Comprobar el registro por generación de mejor, peor y promedio después de mutación y antes de poda, de acuerdo con el material de clase.",
+        "description": "Comprobar el registro por generación de mejor, peor y promedio de la aptitud combinada después de mutación y antes de poda.",
         "status": "pendiente_de_ejecucion"
       },
       {
         "id": "riesgo_no_factible",
         "type": "risk",
         "name": "El algoritmo no encuentra una solución factible",
-        "description": "La ausencia de una solución factible en la población no demuestra por sí sola que no exista una asignación válida. Se necesita distinguir entre escenario imposible y fallo heurístico para encontrar una solución.",
+        "description": "La ausencia de una solución factible en la población no demuestra que no exista. Con la jornada limitada aparece una segunda causa: puede que los puntos quepan en los camiones pero no alcance el tiempo. Hay que distinguir escenario imposible de fallo heurístico.",
         "status": "riesgo_identificado; protocolo_pendiente"
       },
       {
         "id": "sin_optimo_global",
         "type": "limitation",
         "name": "No se garantiza el óptimo global del CVRP",
-        "description": "El algoritmo genético es una metaheurística y busca buenas soluciones; no se afirmará que siempre obtiene la solución global óptima de la asignación y secuenciación de toda la flota.",
+        "description": "El algoritmo genético es una metaheurística: busca buenas soluciones y no garantiza el óptimo global. Además, la solución depende de los pesos elegidos para tiempo, costo y distancia.",
         "status": "limitacion_documentada"
       },
       {
@@ -866,6 +897,567 @@
         "attributes": {
           "url": "https://operations.osmfoundation.org/policies/tiles/"
         }
+      },
+      {
+        "id": "dv_ruta",
+        "type": "decision_variable",
+        "name": "Variable de decisión 1: la ruta",
+        "description": "Qué puntos visita cada camión enviado y en qué orden, incluido el primero y el último antes de regresar al depósito.",
+        "status": "corregido_v2",
+        "attributes": {
+          "se_compone_de": [
+            "x_ij",
+            "p_ij",
+            "y_iab"
+          ]
+        }
+      },
+      {
+        "id": "dv_camiones_enviados",
+        "type": "decision_variable",
+        "name": "Variable de decisión 2: los camiones enviados u_i",
+        "description": "Variable binaria que indica si el vehículo i sale a trabajar. Un camión enviado tiene exactamente una ruta no vacía; uno no enviado no tiene ruta.",
+        "status": "corregido_v2",
+        "attributes": {
+          "dominio": "{0,1}",
+          "relacion": "u_i = 1 si y solo si el camión i tiene al menos un punto asignado"
+        }
+      },
+      {
+        "id": "dv_hora_salida",
+        "type": "decision_variable",
+        "name": "Variable de decisión 3: la hora de salida h_i",
+        "description": "Hora a la que el camión enviado i sale del depósito. Se elige dentro de la ventana de salida permitida y en pasos fijos (por ejemplo, cada 15 minutos) para reducir el espacio de búsqueda.",
+        "status": "corregido_v2",
+        "attributes": {
+          "dominio": "06:00 a 09:00 en pasos de 15 minutos (13 opciones)",
+          "solo_si": "u_i = 1"
+        }
+      },
+      {
+        "id": "objetivo_global",
+        "type": "optimization_objective",
+        "name": "Objetivo combinado de la flota",
+        "description": "Minimizar simultáneamente el tiempo de recorrido, el costo de operación y la distancia total. Se resuelve con una suma ponderada de los tres objetivos normalizados.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "min F(S) = w_t*T_total/T_ref + w_c*C_total/C_ref + w_d*D_total/D_ref",
+          "tipo": "multiobjetivo escalarizado"
+        }
+      },
+      {
+        "id": "obj_tiempo",
+        "type": "optimization_objective",
+        "name": "Objetivo 1: minimizar el tiempo de recorrido",
+        "description": "Minimizar la suma de los tiempos de operación de los camiones enviados, desde su salida hasta su regreso, considerando el tráfico de cada franja.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "min T_total",
+          "unidad": "min"
+        }
+      },
+      {
+        "id": "obj_costo",
+        "type": "optimization_objective",
+        "name": "Objetivo 2: minimizar el costo de operación",
+        "description": "Minimizar la suma del costo fijo por camión enviado, el costo de combustible y el costo de tripulación.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "min C_total",
+          "unidad": "MXN"
+        }
+      },
+      {
+        "id": "tiempo_total",
+        "type": "derived_metric",
+        "name": "Tiempo de recorrido total",
+        "description": "Suma de los tiempos de operación de todos los camiones enviados.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "T_total = suma_i (hora_regreso_i - h_i) = T_conduccion + T_servicio",
+          "unidad": "min"
+        }
+      },
+      {
+        "id": "tiempo_conduccion",
+        "type": "optimization_component",
+        "name": "Tiempo de conducción con tráfico",
+        "description": "Tiempo de manejo de cada tramo. Se obtiene del tiempo en flujo libre ajustado por los factores de las franjas horarias que atraviesa el tramo.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "t_ab(τ) = avance por franjas de t0_ab con factor α_f; τ = hora de inicio del tramo"
+        }
+      },
+      {
+        "id": "tiempo_servicio",
+        "type": "optimization_component",
+        "name": "Tiempo de servicio en los puntos",
+        "description": "Tiempo que el camión permanece detenido cargando residuos en cada punto.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "T_servicio = suma_j s_j"
+        }
+      },
+      {
+        "id": "costo_total",
+        "type": "derived_metric",
+        "name": "Costo total de operación",
+        "description": "Suma del costo fijo de los camiones enviados, el costo de combustible y el costo de tripulación.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "C_total = C_fijo + C_combustible + C_tripulacion",
+          "unidad": "MXN"
+        }
+      },
+      {
+        "id": "costo_fijo",
+        "type": "optimization_component",
+        "name": "Costo fijo por camión enviado",
+        "description": "Costo de poner un camión en servicio en la jornada. Es lo que hace que enviar menos camiones sea una decisión con valor.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "C_fijo = suma_i CF_i * u_i"
+        }
+      },
+      {
+        "id": "costo_combustible",
+        "type": "optimization_component",
+        "name": "Costo de combustible según distancia y peso",
+        "description": "Combustible consumido en cada tramo según los kilómetros y el peso del camión en ese tramo (peso en vacío más la basura acumulada). Por eso recoger primero los puntos pesados cuesta más.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "C_combustible = precio_l * suma_i suma_tramos d_ab * (c0_i + k_i * carga_acumulada)",
+          "nota": "modelo lineal de consumo propuesto; validar con datos del fabricante o de la operación"
+        }
+      },
+      {
+        "id": "costo_tripulacion",
+        "type": "optimization_component",
+        "name": "Costo de tripulación",
+        "description": "Pago a la tripulación por el tiempo de operación de cada camión enviado.",
+        "status": "corregido_v2",
+        "attributes": {
+          "formula": "C_tripulacion = suma_i tarifa_hora_i * tiempo_i / 60"
+        }
+      },
+      {
+        "id": "perfil_trafico",
+        "type": "knowledge_item",
+        "name": "Perfil de tráfico por franja horaria",
+        "description": "Tabla de franjas horarias con un factor de lentitud para cada una. Un factor de 1.0 significa flujo libre; 1.6 significa que el tramo tarda 60 % más. Es dato de entrada y forma parte de la base de conocimiento.",
+        "status": "valor_generado",
+        "attributes": {
+          "campos": [
+            "hora_inicio",
+            "hora_fin",
+            "factor",
+            "dias_aplicables"
+          ],
+          "alcance": "un solo perfil para toda la zona, igual para todas las calles, solo días hábiles",
+          "fuente": "valores generados y acordados con el profesor (ver reference_values)",
+          "franjas": 8
+        }
+      },
+      {
+        "id": "franja_horaria",
+        "type": "data_concept",
+        "name": "Franja horaria",
+        "description": "Intervalo del día con un mismo factor de tráfico, por ejemplo hora pico matutina, mediodía, hora pico vespertina y resto del día.",
+        "status": "corregido_v2"
+      },
+      {
+        "id": "jornada",
+        "type": "data_concept",
+        "name": "Jornada de trabajo",
+        "description": "Turno matutino: los camiones pueden salir entre las 6:00 y las 9:00, en pasos de 15 minutos, y deben regresar antes de las 14:00. Evita que el agente elija horas fuera del horario laboral.",
+        "status": "acordado",
+        "attributes": {
+          "campos": [
+            "hora_inicio_salida",
+            "hora_fin_salida",
+            "hora_cierre_regreso",
+            "paso_minutos"
+          ],
+          "valores": {
+            "departure_window_start": "06:00",
+            "departure_window_end": "09:00",
+            "return_deadline": "14:00",
+            "step_minutes": 15
+          }
+        }
+      },
+      {
+        "id": "parametros_costo",
+        "type": "data_concept",
+        "name": "Parámetros de costo",
+        "description": "Precio del combustible, costo fijo por camión enviado, consumo por camión y tarifa por hora de tripulación.",
+        "status": "valor_generado",
+        "attributes": {
+          "moneda": "MXN",
+          "se_conocen_antes_de_optimizar": true,
+          "valores": {
+            "fuel_price_mxn_l": 26.0,
+            "service_time_fixed_min": 3,
+            "service_time_min_per_kg": 0.01
+          }
+        }
+      },
+      {
+        "id": "tiempo_servicio_punto",
+        "type": "data_concept",
+        "name": "Tiempo de servicio por punto",
+        "description": "Minutos que tarda la tripulación en cargar los residuos de un punto. Puede ser un valor fijo o crecer con la demanda.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "s_j = 3 + 0.01 * q_j (minutos; q_j en kg)"
+        }
+      },
+      {
+        "id": "restriccion_ventana_salida",
+        "type": "constraint",
+        "name": "Hora de salida dentro de la ventana",
+        "description": "Cada camión enviado sale dentro de la ventana de salida permitida y en uno de los pasos definidos.",
+        "status": "obligatoria",
+        "attributes": {
+          "formula": "para cada i con u_i = 1: H_inicio <= h_i <= H_fin_salida"
+        }
+      },
+      {
+        "id": "restriccion_cierre_jornada",
+        "type": "constraint",
+        "name": "Regreso antes del cierre de la jornada",
+        "description": "Cada camión enviado debe volver al depósito antes de la hora de cierre, considerando tráfico y tiempo de servicio.",
+        "status": "obligatoria",
+        "attributes": {
+          "formula": "para cada i con u_i = 1: h_i + tiempo_i <= H_cierre"
+        }
+      },
+      {
+        "id": "restriccion_coherencia_envio",
+        "type": "constraint",
+        "name": "Coherencia entre envío, ruta y hora",
+        "description": "Un camión tiene ruta y hora de salida si y solo si es enviado. No hay camiones enviados con ruta vacía.",
+        "status": "obligatoria",
+        "attributes": {
+          "formula": "u_i = 1 <=> suma_j x_ij >= 1"
+        }
+      },
+      {
+        "id": "restriccion_flota_disponible",
+        "type": "constraint",
+        "name": "No enviar más camiones de los disponibles",
+        "description": "Solo se pueden enviar camiones registrados en la flota, cada uno una vez.",
+        "status": "obligatoria",
+        "attributes": {
+          "formula": "suma_i u_i <= |V|"
+        }
+      },
+      {
+        "id": "supuesto_camino_fijo",
+        "type": "assumption",
+        "name": "El camino entre dos ubicaciones no cambia con la hora",
+        "description": "Entre dos ubicaciones siempre se usa el mismo camino, el de menor distancia. El tráfico cambia cuánto se tarda en recorrerlo, no por dónde se va. Simplifica el modelo pero puede no elegir la ruta más rápida en hora pico.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_descarga_deposito",
+        "type": "assumption",
+        "name": "La descarga se hace en el depósito",
+        "description": "Los camiones descargan al regresar al depósito. No se modela un relleno sanitario o centro de transferencia distinto.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_tripulacion_disponible",
+        "type": "assumption",
+        "name": "Hay tripulación para cada camión enviado",
+        "description": "Cada camión enviado cuenta con conductor y ayudantes; la disponibilidad de personal no limita cuántos camiones salen.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_sin_espera",
+        "type": "assumption",
+        "name": "Sin esperas voluntarias",
+        "description": "Después de salir, el camión no se detiene a esperar a que baje el tráfico; solo se detiene para dar servicio.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "supuesto_costos_fijos",
+        "type": "assumption",
+        "name": "Precios y tarifas constantes en la jornada",
+        "description": "El precio del combustible y las tarifas no cambian durante la jornada modelada.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "fuera_trafico_tiempo_real",
+        "type": "out_of_scope",
+        "name": "Tráfico en tiempo real",
+        "description": "No se consultan servicios de tráfico en vivo; solo se usa el perfil predefinido por franja.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_ventanas_por_punto",
+        "type": "out_of_scope",
+        "name": "Horarios de atención por punto",
+        "description": "No se modelan horarios específicos en que cada punto deba ser atendido; solo la jornada general.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_sitio_disposicion",
+        "type": "out_of_scope",
+        "name": "Sitio de disposición distinto del depósito",
+        "description": "No se modela el viaje a un relleno sanitario o centro de transferencia separado.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_camino_por_hora",
+        "type": "out_of_scope",
+        "name": "Cambio de camino según la hora",
+        "description": "No se recalcula un camino distinto entre dos puntos para evitar el tráfico.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "poda",
+        "type": "algorithm_mechanism",
+        "name": "Poda o reemplazo de la población",
+        "description": "Reducción de la población combinada de padres e hijos al tamaño configurado, conservando a los mejores. Se menciona en la medición de la gráfica pero no estaba definida en la versión 1.",
+        "status": "metodo_general_acordado; estrategia_especifica_pendiente"
+      },
+      {
+        "id": "archivo_mejores",
+        "type": "algorithm_mechanism",
+        "name": "Archivo de mejores soluciones factibles",
+        "description": "Registro de las mejores soluciones factibles y distintas encontradas en toda la ejecución, del que se toman las tres mejores.",
+        "status": "corregido_v2"
+      },
+      {
+        "id": "simulacion_recorrido",
+        "type": "algorithm_mechanism",
+        "name": "Simulación del recorrido en el tiempo",
+        "description": "Para evaluar un individuo se recorre cada ruta en orden desde la hora de salida, sumando tiempo de conducción con el factor de la franja vigente y tiempo de servicio. El resultado son la hora de llegada a cada punto, la hora de regreso, el tiempo, el costo y la distancia.",
+        "status": "decision_propuesta",
+        "attributes": {
+          "regla_fifo": "Si un tramo cruza el cambio de franja, se avanza por partes con el factor de cada franja, en lugar de usar solo el factor de la hora de inicio. Así salir más tarde nunca hace llegar antes."
+        }
+      },
+      {
+        "id": "normalizacion_objetivos",
+        "type": "algorithm_mechanism",
+        "name": "Normalización de objetivos",
+        "description": "Cálculo de T_ref, C_ref y D_ref con una solución heurística al inicio de la ejecución. Permite sumar minutos, pesos y kilómetros sin que la unidad más grande domine.",
+        "status": "decision_propuesta"
+      },
+      {
+        "id": "entrada_jornada",
+        "type": "input",
+        "name": "Entrada: jornada de trabajo",
+        "description": "Hora de inicio y fin de salida, hora de cierre de regreso y paso de discretización de la hora de salida.",
+        "status": "corregido_v2",
+        "attributes": {
+          "campos": [
+            "hora_inicio_salida",
+            "hora_fin_salida",
+            "hora_cierre_regreso",
+            "paso_minutos"
+          ]
+        }
+      },
+      {
+        "id": "entrada_trafico",
+        "type": "input",
+        "name": "Entrada: perfil de tráfico",
+        "description": "Lista de franjas horarias con su factor de lentitud.",
+        "status": "corregido_v2",
+        "attributes": {
+          "campos": [
+            "hora_inicio",
+            "hora_fin",
+            "factor",
+            "dias_aplicables"
+          ]
+        }
+      },
+      {
+        "id": "entrada_costos",
+        "type": "input",
+        "name": "Entrada: parámetros de costo generales",
+        "description": "Precio del combustible por litro y tiempo de servicio por punto.",
+        "status": "corregido_v2",
+        "attributes": {
+          "campos": [
+            "precio_combustible_mxn_l",
+            "tiempo_servicio_fijo_min",
+            "tiempo_servicio_min_por_kg"
+          ]
+        }
+      },
+      {
+        "id": "entrada_pesos",
+        "type": "input",
+        "name": "Entrada: pesos de los objetivos",
+        "description": "Importancia relativa del tiempo, el costo y la distancia. Deben sumar 1.",
+        "status": "corregido_v2",
+        "attributes": {
+          "campos": [
+            "w_tiempo",
+            "w_costo",
+            "w_distancia"
+          ],
+          "valor_por_defecto": "1/3 cada uno (acordado)"
+        }
+      },
+      {
+        "id": "validacion_jornada",
+        "type": "validation_rule",
+        "name": "Validación de la jornada",
+        "description": "Antes de optimizar se comprueba que la ventana de salida sea válida, que el cierre sea posterior a la última salida y que cada punto pueda visitarse saliendo y regresando al depósito dentro de la jornada en el mejor caso.",
+        "status": "requisito_obligatorio"
+      },
+      {
+        "id": "validacion_trafico",
+        "type": "validation_rule",
+        "name": "Validación del perfil de tráfico",
+        "description": "Las franjas deben cubrir toda la jornada sin huecos ni traslapes y cada factor debe ser mayor o igual a 1.",
+        "status": "requisito_obligatorio"
+      },
+      {
+        "id": "validacion_pesos",
+        "type": "validation_rule",
+        "name": "Validación de pesos",
+        "description": "Los pesos de los objetivos deben ser no negativos y sumar 1.",
+        "status": "requisito_obligatorio"
+      },
+      {
+        "id": "limite_datos_trafico",
+        "type": "technical_limit",
+        "name": "Falta de datos de tráfico",
+        "description": "OpenStreetMap y Valhalla no proporcionan velocidades por hora. Se usan valores generados, por lo que los tiempos son representativos, no medidos.",
+        "status": "limitacion_delimitada"
+      },
+      {
+        "id": "limite_tamano_matriz",
+        "type": "technical_limit",
+        "name": "Límite de tamaño de la matriz",
+        "description": "Las instancias de Valhalla limitan cuántas ubicaciones admite una matriz. Escenarios con muchos puntos pueden requerir dividir la solicitud o una instancia propia.",
+        "status": "limitacion_delimitada; limite_de_instancia_por_definir"
+      },
+      {
+        "id": "riesgo_correlacion_objetivos",
+        "type": "risk",
+        "name": "Objetivos correlacionados",
+        "description": "Distancia, combustible y tiempo crecen juntos. Con pesos iguales, la distancia influye casi dos veces y el tiempo puede quedar opacado. Requiere prueba de sensibilidad de pesos. Con pesos iguales, decisión del equipo, el efecto se documenta como supuesto.",
+        "status": "riesgo_identificado"
+      },
+      {
+        "id": "riesgo_pesos_arbitrarios",
+        "type": "risk",
+        "name": "Resultado dependiente de los pesos",
+        "description": "La mejor solución cambia según los pesos elegidos. Sin justificar los pesos, el resultado puede parecer arbitrario. Alternativa: presentar un frente de Pareto (fuera de alcance en la versión 2.0).",
+        "status": "riesgo_identificado"
+      },
+      {
+        "id": "riesgo_hora_trivial",
+        "type": "risk",
+        "name": "Hora de salida trivial",
+        "description": "Con una ventana de 5:00 a 8:00, salir lo más temprano siempre ganaba. Con la ventana de 6:00 a 9:00 tiende a ganar la salida de las 9:00, después de la hora pico, salvo cuando la ruta es larga y no alcanza a regresar antes de las 14:00. La variable aporta en la medida en que el cierre de jornada sea exigente; la prueba de tráfico debe incluir rutas largas.",
+        "status": "riesgo_mitigado"
+      },
+      {
+        "id": "riesgo_espacio_busqueda",
+        "type": "risk",
+        "name": "Crecimiento del espacio de búsqueda",
+        "description": "Agregar hora de salida y camiones enviados multiplica las combinaciones posibles. Puede requerir más generaciones o una población inicial construida con heurísticas.",
+        "status": "riesgo_identificado"
+      },
+      {
+        "id": "prueba_trafico_franjas",
+        "type": "test",
+        "name": "Prueba de tráfico por franja",
+        "description": "La misma ruta con salida en hora pico debe tardar más que con salida fuera de hora pico, y la distancia debe ser igual.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_fifo",
+        "type": "test",
+        "name": "Prueba de no adelantamiento (FIFO)",
+        "description": "Salir más tarde en el mismo tramo nunca debe producir una llegada más temprana, incluso al cruzar un cambio de franja.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_jornada",
+        "type": "test",
+        "name": "Prueba de jornada",
+        "description": "Ninguna solución presentada debe salir fuera de la ventana ni regresar después del cierre.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_costo",
+        "type": "test",
+        "name": "Prueba de cálculo de costo",
+        "description": "Comparar el costo calculado contra un caso pequeño resuelto a mano, incluido el efecto del orden de visita en el combustible por el peso acumulado.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_camiones_enviados",
+        "type": "test",
+        "name": "Prueba de camiones enviados",
+        "description": "Comprobar que ningún camión enviado tenga ruta vacía y que los no enviados no tengan ruta ni hora ni costo.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "prueba_sensibilidad_pesos",
+        "type": "test",
+        "name": "Prueba de sensibilidad de pesos",
+        "description": "Ejecutar con pesos que favorezcan cada objetivo y verificar que la solución cambia en la dirección esperada.",
+        "status": "pendiente_de_ejecucion"
+      },
+      {
+        "id": "base_conocimiento",
+        "type": "knowledge_base",
+        "name": "Base de conocimiento del agente",
+        "description": "Conjunto de hechos que el agente conoce antes de optimizar y de reglas que debe respetar al construir y evaluar soluciones. Se detalla en la sección knowledge_base del documento.",
+        "status": "corregido_v2"
+      },
+      {
+        "id": "bc_hechos",
+        "type": "knowledge_base_section",
+        "name": "Hechos",
+        "description": "Datos del escenario: ubicaciones, demandas, flota, distancias, tiempos base, tráfico, jornada y costos.",
+        "status": "corregido_v2"
+      },
+      {
+        "id": "bc_reglas",
+        "type": "knowledge_base_section",
+        "name": "Reglas",
+        "description": "Restricciones del problema, reglas de cálculo y reglas de validación y manejo de errores.",
+        "status": "corregido_v2"
+      },
+      {
+        "id": "supuesto_dia_habil",
+        "type": "assumption",
+        "name": "Escenario de día hábil",
+        "description": "Todos los escenarios representan un día hábil de lunes a viernes con el mismo perfil de tráfico.",
+        "status": "supuesto_delimitado"
+      },
+      {
+        "id": "fuera_fin_de_semana",
+        "type": "out_of_scope",
+        "name": "Perfil de tráfico de fin de semana",
+        "description": "No se modela un perfil distinto para sábados, domingos o días festivos.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "fuera_trafico_por_calle",
+        "type": "out_of_scope",
+        "name": "Tráfico distinto por tipo de calle",
+        "description": "No se distinguen avenidas principales de calles locales; el factor es el mismo en toda la zona.",
+        "status": "fuera_de_alcance"
+      },
+      {
+        "id": "valores_referencia",
+        "type": "knowledge_item",
+        "name": "Valores de referencia generados",
+        "description": "Perfil de tráfico, jornada, flota de ejemplo, precio del combustible, tiempo de servicio y pesos generados para el proyecto. Se detallan en la sección reference_values.",
+        "status": "valor_generado"
       }
     ],
     "edges": [
@@ -898,11 +1490,6 @@
         "source": "siruga",
         "target": "decision_variables",
         "relation": "controla"
-      },
-      {
-        "source": "siruga",
-        "target": "objetivo_global",
-        "relation": "persigue"
       },
       {
         "source": "siruga",
@@ -986,7 +1573,7 @@
       },
       {
         "source": "entorno",
-        "target": "supuesto_sin_trafico",
+        "target": "supuesto_trafico_franjas",
         "relation": "asume"
       },
       {
@@ -1035,21 +1622,6 @@
         "relation": "incluye"
       },
       {
-        "source": "decision_variables",
-        "target": "x_asignacion",
-        "relation": "incluye"
-      },
-      {
-        "source": "decision_variables",
-        "target": "p_orden",
-        "relation": "incluye"
-      },
-      {
-        "source": "decision_variables",
-        "target": "y_arco",
-        "relation": "incluye"
-      },
-      {
         "source": "x_asignacion",
         "target": "vehiculo",
         "relation": "determina"
@@ -1065,22 +1637,17 @@
         "relation": "ordena"
       },
       {
-        "source": "y_arco",
-        "target": "red_vial",
-        "relation": "conecta"
-      },
-      {
-        "source": "objetivo_global",
+        "source": "obj_distancia",
         "target": "distancia_salida",
         "relation": "se_descompone_en"
       },
       {
-        "source": "objetivo_global",
+        "source": "obj_distancia",
         "target": "distancia_entre_puntos",
         "relation": "se_descompone_en"
       },
       {
-        "source": "objetivo_global",
+        "source": "obj_distancia",
         "target": "distancia_regreso",
         "relation": "se_descompone_en"
       },
@@ -1098,11 +1665,6 @@
         "source": "distancia_regreso",
         "target": "distancia_total",
         "relation": "contribuye_a"
-      },
-      {
-        "source": "distancia_total",
-        "target": "objetivo_global",
-        "relation": "se_minimiza_mediante"
       },
       {
         "source": "aptitud",
@@ -1300,11 +1862,6 @@
         "relation": "busca_cumplir"
       },
       {
-        "source": "elitismo",
-        "target": "tres_mejores",
-        "relation": "conserva"
-      },
-      {
         "source": "algoritmo_genetico",
         "target": "tres_mejores",
         "relation": "produce"
@@ -1422,47 +1979,32 @@
       {
         "source": "siruga",
         "target": "fuera_multiples_depositos",
-        "relation": "excluye_del_alcance_v1"
+        "relation": "excluye_del_alcance"
       },
       {
         "source": "siruga",
         "target": "fuera_multiviajes",
-        "relation": "excluye_del_alcance_v1"
+        "relation": "excluye_del_alcance"
       },
       {
         "source": "siruga",
         "target": "fuera_demanda_divisible",
-        "relation": "excluye_del_alcance_v1"
+        "relation": "excluye_del_alcance"
       },
       {
         "source": "siruga",
         "target": "fuera_equilibrio",
-        "relation": "excluye_del_alcance_v1"
-      },
-      {
-        "source": "siruga",
-        "target": "fuera_tiempo_combustible",
-        "relation": "excluye_del_alcance_v1"
+        "relation": "excluye_del_alcance"
       },
       {
         "source": "siruga",
         "target": "fuera_clima",
-        "relation": "excluye_del_alcance_v1"
+        "relation": "excluye_del_alcance"
       },
       {
         "source": "siruga",
         "target": "fuera_dimensiones_individuales",
-        "relation": "excluye_del_alcance_v1"
-      },
-      {
-        "source": "supuesto_red_estatica",
-        "target": "supuesto_sin_trafico",
-        "relation": "excluye"
-      },
-      {
-        "source": "supuesto_red_estatica",
-        "target": "contexto_urbano",
-        "relation": "excluye"
+        "relation": "excluye_del_alcance"
       },
       {
         "source": "supuesto_acceso_vial",
@@ -1533,11 +2075,6 @@
         "source": "riesgo_no_factible",
         "target": "validacion_factibilidad",
         "relation": "se_relaciona_con"
-      },
-      {
-        "source": "criterio_tres_componentes",
-        "target": "objetivo_global",
-        "relation": "describe"
       },
       {
         "source": "criterio_tres_componentes",
@@ -1653,6 +2190,831 @@
         "source": "referencia_osm_tiles",
         "target": "limite_servicios_publicos",
         "relation": "documenta"
+      },
+      {
+        "source": "supuesto_red_estatica",
+        "target": "supuesto_trafico_franjas",
+        "relation": "complementa"
+      },
+      {
+        "source": "obj_distancia",
+        "target": "distancia_total",
+        "relation": "minimiza"
+      },
+      {
+        "source": "y_arco",
+        "target": "matriz_distancias",
+        "relation": "usa_valores_de"
+      },
+      {
+        "source": "restriccion_un_viaje",
+        "target": "vehiculo",
+        "relation": "controla"
+      },
+      {
+        "source": "restriccion_no_dividir",
+        "target": "demanda_residuos",
+        "relation": "controla"
+      },
+      {
+        "source": "seleccion",
+        "target": "aptitud",
+        "relation": "utiliza"
+      },
+      {
+        "source": "decision_variables",
+        "target": "dv_ruta",
+        "relation": "incluye"
+      },
+      {
+        "source": "decision_variables",
+        "target": "dv_camiones_enviados",
+        "relation": "incluye"
+      },
+      {
+        "source": "decision_variables",
+        "target": "dv_hora_salida",
+        "relation": "incluye"
+      },
+      {
+        "source": "dv_ruta",
+        "target": "x_asignacion",
+        "relation": "se_compone_de"
+      },
+      {
+        "source": "dv_ruta",
+        "target": "p_orden",
+        "relation": "se_compone_de"
+      },
+      {
+        "source": "dv_ruta",
+        "target": "y_arco",
+        "relation": "se_compone_de"
+      },
+      {
+        "source": "dv_camiones_enviados",
+        "target": "flota",
+        "relation": "selecciona_de"
+      },
+      {
+        "source": "dv_camiones_enviados",
+        "target": "dv_ruta",
+        "relation": "habilita"
+      },
+      {
+        "source": "dv_hora_salida",
+        "target": "dv_camiones_enviados",
+        "relation": "aplica_solo_a"
+      },
+      {
+        "source": "dv_hora_salida",
+        "target": "jornada",
+        "relation": "se_limita_por"
+      },
+      {
+        "source": "dv_hora_salida",
+        "target": "perfil_trafico",
+        "relation": "determina_franja_en"
+      },
+      {
+        "source": "representacion_individuo",
+        "target": "dv_hora_salida",
+        "relation": "codifica"
+      },
+      {
+        "source": "representacion_individuo",
+        "target": "dv_camiones_enviados",
+        "relation": "codifica"
+      },
+      {
+        "source": "representacion_individuo",
+        "target": "dv_ruta",
+        "relation": "codifica"
+      },
+      {
+        "source": "siruga",
+        "target": "objetivo_global",
+        "relation": "persigue"
+      },
+      {
+        "source": "objetivo_global",
+        "target": "obj_tiempo",
+        "relation": "agrega"
+      },
+      {
+        "source": "objetivo_global",
+        "target": "obj_costo",
+        "relation": "agrega"
+      },
+      {
+        "source": "objetivo_global",
+        "target": "obj_distancia",
+        "relation": "agrega"
+      },
+      {
+        "source": "obj_tiempo",
+        "target": "tiempo_total",
+        "relation": "minimiza"
+      },
+      {
+        "source": "obj_costo",
+        "target": "costo_total",
+        "relation": "minimiza"
+      },
+      {
+        "source": "tiempo_conduccion",
+        "target": "tiempo_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "tiempo_servicio",
+        "target": "tiempo_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "costo_fijo",
+        "target": "costo_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "costo_combustible",
+        "target": "costo_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "costo_tripulacion",
+        "target": "costo_total",
+        "relation": "contribuye_a"
+      },
+      {
+        "source": "obj_tiempo",
+        "target": "tiempo_conduccion",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "obj_tiempo",
+        "target": "tiempo_servicio",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "obj_costo",
+        "target": "costo_fijo",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "obj_costo",
+        "target": "costo_combustible",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "obj_costo",
+        "target": "costo_tripulacion",
+        "relation": "se_descompone_en"
+      },
+      {
+        "source": "tiempo_conduccion",
+        "target": "perfil_trafico",
+        "relation": "utiliza"
+      },
+      {
+        "source": "tiempo_conduccion",
+        "target": "matriz_distancias",
+        "relation": "utiliza"
+      },
+      {
+        "source": "tiempo_servicio",
+        "target": "tiempo_servicio_punto",
+        "relation": "utiliza"
+      },
+      {
+        "source": "costo_fijo",
+        "target": "dv_camiones_enviados",
+        "relation": "depende_de"
+      },
+      {
+        "source": "costo_combustible",
+        "target": "distancia_total",
+        "relation": "depende_de"
+      },
+      {
+        "source": "costo_combustible",
+        "target": "demanda_residuos",
+        "relation": "depende_de_carga_acumulada"
+      },
+      {
+        "source": "costo_combustible",
+        "target": "parametros_costo",
+        "relation": "utiliza"
+      },
+      {
+        "source": "costo_tripulacion",
+        "target": "tiempo_total",
+        "relation": "depende_de"
+      },
+      {
+        "source": "costo_tripulacion",
+        "target": "parametros_costo",
+        "relation": "utiliza"
+      },
+      {
+        "source": "aptitud",
+        "target": "objetivo_global",
+        "relation": "evalua"
+      },
+      {
+        "source": "aptitud",
+        "target": "normalizacion_objetivos",
+        "relation": "utiliza"
+      },
+      {
+        "source": "criterio_tres_componentes",
+        "target": "objetivo_global",
+        "relation": "describe"
+      },
+      {
+        "source": "perfil_trafico",
+        "target": "franja_horaria",
+        "relation": "se_compone_de"
+      },
+      {
+        "source": "supuesto_trafico_franjas",
+        "target": "perfil_trafico",
+        "relation": "se_define_con"
+      },
+      {
+        "source": "entorno",
+        "target": "jornada",
+        "relation": "opera_dentro_de"
+      },
+      {
+        "source": "vehiculo",
+        "target": "parametros_costo",
+        "relation": "tiene"
+      },
+      {
+        "source": "punto_recoleccion",
+        "target": "tiempo_servicio_punto",
+        "relation": "tiene"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_ventana_salida",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_cierre_jornada",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_coherencia_envio",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "modelo_cvrp",
+        "target": "restriccion_flota_disponible",
+        "relation": "esta_sujeto_a"
+      },
+      {
+        "source": "restriccion_ventana_salida",
+        "target": "dv_hora_salida",
+        "relation": "controla"
+      },
+      {
+        "source": "restriccion_ventana_salida",
+        "target": "jornada",
+        "relation": "utiliza"
+      },
+      {
+        "source": "restriccion_cierre_jornada",
+        "target": "tiempo_total",
+        "relation": "controla"
+      },
+      {
+        "source": "restriccion_cierre_jornada",
+        "target": "jornada",
+        "relation": "utiliza"
+      },
+      {
+        "source": "restriccion_coherencia_envio",
+        "target": "dv_camiones_enviados",
+        "relation": "controla"
+      },
+      {
+        "source": "restriccion_coherencia_envio",
+        "target": "dv_ruta",
+        "relation": "controla"
+      },
+      {
+        "source": "restriccion_flota_disponible",
+        "target": "flota",
+        "relation": "controla"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_camino_fijo",
+        "relation": "asume"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_descarga_deposito",
+        "relation": "asume"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_tripulacion_disponible",
+        "relation": "asume"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_sin_espera",
+        "relation": "asume"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_costos_fijos",
+        "relation": "asume"
+      },
+      {
+        "source": "supuesto_camino_fijo",
+        "target": "limite_valhalla",
+        "relation": "se_relaciona_con"
+      },
+      {
+        "source": "supuesto_descarga_deposito",
+        "target": "deposito",
+        "relation": "define_rol_de"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_trafico_tiempo_real",
+        "relation": "excluye_del_alcance"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_ventanas_por_punto",
+        "relation": "excluye_del_alcance"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_sitio_disposicion",
+        "relation": "excluye_del_alcance"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_camino_por_hora",
+        "relation": "excluye_del_alcance"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "poda",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "archivo_mejores",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "simulacion_recorrido",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "normalizacion_objetivos",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "elitismo",
+        "target": "poblacion",
+        "relation": "conserva_mejor_de"
+      },
+      {
+        "source": "archivo_mejores",
+        "target": "tres_mejores",
+        "relation": "produce"
+      },
+      {
+        "source": "simulacion_recorrido",
+        "target": "aptitud",
+        "relation": "alimenta"
+      },
+      {
+        "source": "simulacion_recorrido",
+        "target": "perfil_trafico",
+        "relation": "utiliza"
+      },
+      {
+        "source": "simulacion_recorrido",
+        "target": "restriccion_cierre_jornada",
+        "relation": "verifica"
+      },
+      {
+        "source": "grafica_aptitud",
+        "target": "poda",
+        "relation": "se_mide_antes_de"
+      },
+      {
+        "source": "mutacion",
+        "target": "dv_hora_salida",
+        "relation": "modifica"
+      },
+      {
+        "source": "mutacion",
+        "target": "dv_camiones_enviados",
+        "relation": "modifica"
+      },
+      {
+        "source": "reparacion_individuos",
+        "target": "restriccion_cierre_jornada",
+        "relation": "busca_cumplir"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_jornada",
+        "relation": "captura"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_trafico",
+        "relation": "captura"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_costos",
+        "relation": "captura"
+      },
+      {
+        "source": "flujo_interfaz",
+        "target": "entrada_pesos",
+        "relation": "captura"
+      },
+      {
+        "source": "entrada_jornada",
+        "target": "jornada",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_trafico",
+        "target": "perfil_trafico",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_costos",
+        "target": "parametros_costo",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_costos",
+        "target": "tiempo_servicio_punto",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_vehiculos",
+        "target": "parametros_costo",
+        "relation": "define"
+      },
+      {
+        "source": "entrada_pesos",
+        "target": "objetivo_global",
+        "relation": "configura"
+      },
+      {
+        "source": "tabla_resultados",
+        "target": "tiempo_total",
+        "relation": "presenta"
+      },
+      {
+        "source": "tabla_resultados",
+        "target": "costo_total",
+        "relation": "presenta"
+      },
+      {
+        "source": "tabla_resultados",
+        "target": "dv_hora_salida",
+        "relation": "presenta"
+      },
+      {
+        "source": "validacion_jornada",
+        "target": "jornada",
+        "relation": "comprueba"
+      },
+      {
+        "source": "validacion_trafico",
+        "target": "perfil_trafico",
+        "relation": "comprueba"
+      },
+      {
+        "source": "validacion_pesos",
+        "target": "entrada_pesos",
+        "relation": "comprueba"
+      },
+      {
+        "source": "validacion_factibilidad",
+        "target": "restriccion_cierre_jornada",
+        "relation": "comprueba"
+      },
+      {
+        "source": "limite_datos_trafico",
+        "target": "perfil_trafico",
+        "relation": "limita"
+      },
+      {
+        "source": "limite_tamano_matriz",
+        "target": "valhalla_matrix",
+        "relation": "limita"
+      },
+      {
+        "source": "riesgo_correlacion_objetivos",
+        "target": "objetivo_global",
+        "relation": "afecta"
+      },
+      {
+        "source": "riesgo_pesos_arbitrarios",
+        "target": "entrada_pesos",
+        "relation": "se_relaciona_con"
+      },
+      {
+        "source": "riesgo_hora_trivial",
+        "target": "dv_hora_salida",
+        "relation": "afecta"
+      },
+      {
+        "source": "riesgo_espacio_busqueda",
+        "target": "algoritmo_genetico",
+        "relation": "afecta"
+      },
+      {
+        "source": "riesgo_no_factible",
+        "target": "restriccion_cierre_jornada",
+        "relation": "se_relaciona_con"
+      },
+      {
+        "source": "prueba_trafico_franjas",
+        "target": "simulacion_recorrido",
+        "relation": "verifica"
+      },
+      {
+        "source": "prueba_fifo",
+        "target": "simulacion_recorrido",
+        "relation": "verifica"
+      },
+      {
+        "source": "prueba_jornada",
+        "target": "restriccion_cierre_jornada",
+        "relation": "verifica"
+      },
+      {
+        "source": "prueba_costo",
+        "target": "costo_total",
+        "relation": "verifica"
+      },
+      {
+        "source": "prueba_camiones_enviados",
+        "target": "restriccion_coherencia_envio",
+        "relation": "verifica"
+      },
+      {
+        "source": "prueba_sensibilidad_pesos",
+        "target": "objetivo_global",
+        "relation": "verifica"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_trafico_franjas",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_fifo",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_jornada",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_costo",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_camiones_enviados",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "siruga",
+        "target": "prueba_sensibilidad_pesos",
+        "relation": "requiere_prueba"
+      },
+      {
+        "source": "siruga",
+        "target": "base_conocimiento",
+        "relation": "razona_con"
+      },
+      {
+        "source": "base_conocimiento",
+        "target": "bc_hechos",
+        "relation": "contiene"
+      },
+      {
+        "source": "base_conocimiento",
+        "target": "bc_reglas",
+        "relation": "contiene"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "base_conocimiento",
+        "relation": "consulta"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "deposito",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "punto_recoleccion",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "demanda_residuos",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "flota",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "capacidad_vehiculo",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "matriz_distancias",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "perfil_trafico",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "jornada",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "parametros_costo",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "tiempo_servicio_punto",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "red_vial",
+        "relation": "incluye_hecho"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_unicidad",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_capacidad",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_deposito",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_un_viaje",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_no_dividir",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_factibilidad_vial",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_ventana_salida",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_cierre_jornada",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_coherencia_envio",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "restriccion_flota_disponible",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "simulacion_recorrido",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "validacion_matriz",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "validacion_capacidad_basica",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "validacion_jornada",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "validacion_trafico",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "error_servicio_externo",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "entorno",
+        "target": "supuesto_dia_habil",
+        "relation": "asume"
+      },
+      {
+        "source": "supuesto_dia_habil",
+        "target": "perfil_trafico",
+        "relation": "determina"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_fin_de_semana",
+        "relation": "excluye_del_alcance"
+      },
+      {
+        "source": "siruga",
+        "target": "fuera_trafico_por_calle",
+        "relation": "excluye_del_alcance"
+      },
+      {
+        "source": "valores_referencia",
+        "target": "perfil_trafico",
+        "relation": "define_valores_de"
+      },
+      {
+        "source": "valores_referencia",
+        "target": "jornada",
+        "relation": "define_valores_de"
+      },
+      {
+        "source": "valores_referencia",
+        "target": "parametros_costo",
+        "relation": "define_valores_de"
+      },
+      {
+        "source": "valores_referencia",
+        "target": "tiempo_servicio_punto",
+        "relation": "define_valores_de"
+      },
+      {
+        "source": "valores_referencia",
+        "target": "entrada_pesos",
+        "relation": "define_valores_de"
+      },
+      {
+        "source": "bc_hechos",
+        "target": "valores_referencia",
+        "relation": "incluye_hecho"
       }
     ]
   },
@@ -1660,69 +3022,394 @@
     "sets": {
       "V": "Conjunto de vehículos disponibles.",
       "P": "Conjunto de puntos de recolección.",
-      "0": "Centro de operaciones o depósito."
+      "0": "Centro de operaciones o depósito.",
+      "F": "Conjunto de franjas horarias del perfil de tráfico.",
+      "H": "Horas de salida permitidas: de H_inicio a H_fin_salida en pasos de Δ minutos."
     },
     "parameters": {
       "q_j": "Demanda de residuos del punto j, en kg.",
       "C_i": "Capacidad máxima del vehículo i, en kg.",
-      "d_ab": "Distancia vial mínima calculada desde la ubicación a hasta la ubicación b, en km, bajo el perfil y la configuración del motor de rutas."
+      "d_ab": "Distancia vial del camino más corto desde a hasta b, en km.",
+      "t0_ab": "Tiempo en flujo libre de ese mismo camino, en minutos.",
+      "α_f": "Factor de lentitud de la franja f (α_f >= 1).",
+      "s_j": "Tiempo de servicio en el punto j, en minutos.",
+      "W_i": "Peso en vacío del vehículo i, en kg (informativo; el consumo usa c0_i y k_i).",
+      "c0_i": "Consumo del vehículo i vacío, en litros por km.",
+      "k_i": "Aumento del consumo del vehículo i por cada kg de carga, en litros por km por kg.",
+      "precio_l": "Precio del combustible, en MXN por litro.",
+      "CF_i": "Costo fijo por enviar el vehículo i, en MXN.",
+      "tarifa_hora_i": "Costo por hora de la tripulación del vehículo i, en MXN.",
+      "H_inicio, H_fin_salida": "Ventana de salida permitida.",
+      "H_cierre": "Hora límite de regreso al depósito.",
+      "w_t, w_c, w_d": "Pesos de tiempo, costo y distancia; suman 1.",
+      "T_ref, C_ref, D_ref": "Valores de referencia fijos por ejecución para normalizar."
     },
     "decision_variables": {
-      "x_ij": {
-        "meaning": "1 si el punto j se asigna al vehículo i; 0 en otro caso.",
+      "ruta": {
+        "meaning": "Qué puntos visita cada camión y en qué orden.",
+        "components": {
+          "x_ij": {
+            "meaning": "1 si el punto j se asigna al vehículo i; 0 en otro caso.",
+            "type": "binaria"
+          },
+          "p_ij": {
+            "meaning": "Posición del punto j en la secuencia del vehículo i.",
+            "type": "entera/ordinal"
+          },
+          "y_iab": {
+            "meaning": "1 si el vehículo i recorre directamente desde a hasta b; 0 en otro caso.",
+            "type": "binaria",
+            "note": "Se deriva de la secuencia del cromosoma."
+          }
+        }
+      },
+      "u_i": {
+        "meaning": "1 si el vehículo i es enviado; 0 en otro caso.",
         "type": "binaria"
       },
-      "p_ij": {
-        "meaning": "Posición del punto j en la secuencia del vehículo i.",
-        "type": "entera/ordinal"
-      },
-      "y_iab": {
-        "meaning": "1 si el vehículo i recorre directamente desde a hasta b; 0 en otro caso.",
-        "type": "binaria",
-        "note": "Puede derivarse de la secuencia del cromosoma; no necesariamente se almacena como gen independiente."
+      "h_i": {
+        "meaning": "Hora de salida del vehículo i, solo si u_i = 1.",
+        "type": "discreta en H"
       }
     },
     "objective_components": {
-      "D_salida": "Suma de d_0,primer_punto para cada ruta utilizada.",
-      "D_entre": "Suma de d_punto_consecutivo,punto_siguiente en cada ruta.",
-      "D_regreso": "Suma de d_ultimo_punto,0 para cada ruta utilizada.",
-      "D_total": "D_salida + D_entre + D_regreso."
+      "D_total": "D_salida + D_entre + D_regreso, en km.",
+      "T_total": "Suma para cada camión enviado de (hora_regreso_i - h_i): tiempo de conducción con tráfico más servicio, en minutos.",
+      "C_total": "Suma de CF_i*u_i + precio_l * suma de d_ab*(c0_i + k_i*carga_acumulada) + tarifa_hora_i*tiempo_i/60, en MXN.",
+      "t_ab(τ)": "Tiempo del tramo a-b iniciado a la hora τ: se avanza por franjas consumiendo t0_ab con el factor de cada franja (respeta FIFO)."
     },
-    "objective": "min D_total",
+    "objective": "min F(S) = w_t*T_total/T_ref + w_c*C_total/C_ref + w_d*D_total/D_ref",
+    "objective_type": "Multiobjetivo con tres objetivos, resuelto mediante suma ponderada normalizada. Un frente de Pareto queda fuera del alcance de la versión 2.0.",
     "fitness_proposal": {
-      "formula": "A(S) = 1 / (1 + D_total(S))",
+      "formula": "A(S) = 1 / (1 + F(S))",
       "applies_to": "Individuos factibles",
-      "interpretation": "A menor distancia total, mayor aptitud.",
-      "status": "Propuesta inicial; debe validarse junto con el mecanismo de tratamiento de individuos infactibles."
+      "interpretation": "A menor calificación combinada de tiempo, costo y distancia, mayor aptitud.",
+      "status": "Propuesta; debe validarse junto con el tratamiento de individuos infactibles y la prueba de sensibilidad de pesos."
     },
     "constraints": [
-      "Cada punto se asigna exactamente a un vehículo.",
+      "Cada punto se asigna exactamente a un vehículo enviado.",
       "La suma de demandas asignadas a cada vehículo no supera su capacidad.",
       "Cada ruta utilizada inicia y termina en el depósito.",
       "Cada punto aparece exactamente una vez en el conjunto de rutas.",
       "La demanda de un punto no se divide entre vehículos.",
-      "Cada vehículo realiza como máximo un recorrido.",
-      "Las ubicaciones y conexiones requeridas deben ser válidas en la red vial.",
-      "Los vehículos no utilizados pueden permanecer sin ruta."
+      "Cada vehículo enviado realiza exactamente un recorrido; uno no enviado no realiza ninguno.",
+      "Un vehículo tiene ruta y hora de salida si y solo si es enviado.",
+      "No se envían más vehículos de los disponibles.",
+      "La hora de salida de cada vehículo enviado está dentro de la ventana de salida.",
+      "Cada vehículo enviado regresa al depósito antes de la hora de cierre.",
+      "Las ubicaciones y conexiones requeridas deben ser válidas en la red vial."
     ],
     "feasibility_prechecks": {
       "necessary_conditions": [
         "La demanda de cada punto no debe superar la mayor capacidad de los vehículos disponibles.",
-        "La demanda total no debe superar la suma de las capacidades de la flota."
+        "La demanda total no debe superar la suma de las capacidades de la flota.",
+        "Cada punto debe poder visitarse con un viaje depósito-punto-depósito dentro de la jornada, en el mejor caso de tráfico.",
+        "Las franjas de tráfico deben cubrir la jornada completa."
       ],
-      "warning": "Estas condiciones son necesarias pero no suficientes para demostrar que existe una asignación factible cuando las demandas son indivisibles. Se requiere una comprobación adicional o una búsqueda de asignación factible."
+      "warning": "Estas condiciones son necesarias pero no suficientes. Con demandas indivisibles y jornada limitada puede no existir una solución aunque todas se cumplan."
     }
   },
+  "reference_values": {
+    "status": "valor_generado",
+    "origin": "Valores generados para el proyecto, como se acordó con el profesor. No provienen de mediciones; representan una ciudad media mexicana en día hábil y se pueden sustituir en la interfaz.",
+    "traffic_profile_weekday": {
+      "applies_to": "Toda la zona por igual; solo días hábiles.",
+      "factor_meaning": "Multiplica el tiempo sin tráfico. 1.55 significa que un tramo tarda 55 % más.",
+      "bands": [
+        {
+          "start": "00:00",
+          "end": "06:00",
+          "factor": 1.0,
+          "label": "madrugada, flujo libre"
+        },
+        {
+          "start": "06:00",
+          "end": "07:00",
+          "factor": 1.15,
+          "label": "inicio de actividad"
+        },
+        {
+          "start": "07:00",
+          "end": "09:00",
+          "factor": 1.55,
+          "label": "hora pico matutina (entrada escolar y laboral)"
+        },
+        {
+          "start": "09:00",
+          "end": "13:00",
+          "factor": 1.2,
+          "label": "actividad comercial"
+        },
+        {
+          "start": "13:00",
+          "end": "15:00",
+          "factor": 1.4,
+          "label": "salida escolar y comida"
+        },
+        {
+          "start": "15:00",
+          "end": "18:00",
+          "factor": 1.2,
+          "label": "tarde"
+        },
+        {
+          "start": "18:00",
+          "end": "20:00",
+          "factor": 1.5,
+          "label": "hora pico vespertina"
+        },
+        {
+          "start": "20:00",
+          "end": "24:00",
+          "factor": 1.05,
+          "label": "noche"
+        }
+      ],
+      "rationale": "Picos en la entrada escolar y laboral (7:00-9:00), en la salida escolar y la comida (13:00-15:00) y en la salida laboral (18:00-20:00); flujo libre en la madrugada."
+    },
+    "workday": {
+      "departure_window_start": "06:00",
+      "departure_window_end": "09:00",
+      "return_deadline": "14:00",
+      "step_minutes": 15
+    },
+    "workday_rationale": "Turno matutino de recolección. La ventana 6:00-9:00 obliga a decidir entre salir antes, dentro de la hora pico, o salir a las 9:00 con menos tiempo disponible antes del cierre. El cierre de las 14:00 se mantiene por decisión del equipo; los regresos cercanos caen en la hora pico de 13:00 a 15:00.",
+    "example_fleet": [
+      {
+        "vehicle_type": "compacto",
+        "capacity_kg": 5000,
+        "empty_weight_kg": 7000,
+        "fuel_empty_l_km": 0.3,
+        "fuel_increase_l_km_per_kg": 3e-05,
+        "fixed_dispatch_cost_mxn": 900,
+        "crew_cost_per_hour_mxn": 225
+      },
+      {
+        "vehicle_type": "mediano",
+        "capacity_kg": 8000,
+        "empty_weight_kg": 10000,
+        "fuel_empty_l_km": 0.38,
+        "fuel_increase_l_km_per_kg": 3e-05,
+        "fixed_dispatch_cost_mxn": 1200,
+        "crew_cost_per_hour_mxn": 260
+      },
+      {
+        "vehicle_type": "grande",
+        "capacity_kg": 12000,
+        "empty_weight_kg": 13500,
+        "fuel_empty_l_km": 0.45,
+        "fuel_increase_l_km_per_kg": 3e-05,
+        "fixed_dispatch_cost_mxn": 1600,
+        "crew_cost_per_hour_mxn": 300
+      }
+    ],
+    "fleet_rationale": "Tres tamaños de camión recolector. El consumo vacío ronda 0.30-0.45 L/km y aumenta 0.03 L/km por cada tonelada de carga; la tripulación es de un conductor y dos ayudantes.",
+    "general_costs": {
+      "fuel_price_mxn_l": 26.0,
+      "service_time_fixed_min": 3,
+      "service_time_min_per_kg": 0.01
+    },
+    "service_time_rule": "s_j = 3 min + 0.01 min por kg (1 minuto por cada 100 kg).",
+    "objective_weights": {
+      "w_time": 0.3333333333333333,
+      "w_cost": 0.3333333333333333,
+      "w_distance": 0.3333333333333333
+    },
+    "weights_rationale": "Pesos iguales por decisión del equipo; su efecto se revisa con la prueba de sensibilidad de pesos.",
+    "departure_check": {
+      "description": "Comprobación hecha con el perfil anterior y el avance por franjas: la duración de un mismo recorrido cambia con la hora de salida, por lo que la variable no es trivial.",
+      "driving_free_flow_3h": [
+        {
+          "departure": "06:00",
+          "return": "10:00",
+          "hours": 4.01
+        },
+        {
+          "departure": "07:00",
+          "return": "11:03",
+          "hours": 4.05
+        },
+        {
+          "departure": "08:00",
+          "return": "11:50",
+          "hours": 3.83
+        },
+        {
+          "departure": "09:00",
+          "return": "12:36",
+          "hours": 3.6
+        }
+      ],
+      "driving_free_flow_4h": [
+        {
+          "departure": "06:00",
+          "return": "11:12",
+          "hours": 5.21
+        },
+        {
+          "departure": "09:00",
+          "return": "13:56",
+          "hours": 4.93
+        }
+      ],
+      "conclusion": "Salir a las 9:00 suele ser más rápido porque evita la hora pico, pero las rutas largas se acercan al cierre de las 14:00. Eso obliga a elegir entre salir antes con tráfico, acortar la ruta o enviar otro camión, lo que conecta la hora de salida con los camiones enviados y el costo fijo."
+    }
+  },
+  "knowledge_base": {
+    "description": "Lo que el agente sabe antes de optimizar (hechos) y las reglas que aplica al decidir y evaluar.",
+    "facts": [
+      {
+        "id": "BC-H01",
+        "statement": "Existe un solo depósito con ubicación conocida; de ahí salen y ahí regresan y descargan los camiones.",
+        "node": "deposito"
+      },
+      {
+        "id": "BC-H02",
+        "statement": "Cada punto de recolección tiene ubicación, cantidad de basura en kg y tiempo de servicio conocidos.",
+        "node": "punto_recoleccion"
+      },
+      {
+        "id": "BC-H03",
+        "statement": "Cada camión disponible tiene capacidad, peso en vacío, consumo de combustible, costo fijo de envío y costo por hora de tripulación.",
+        "node": "vehiculo"
+      },
+      {
+        "id": "BC-H04",
+        "statement": "Se conoce la distancia y el tiempo sin tráfico entre cada par de ubicaciones; ir de A a B puede ser distinto que ir de B a A.",
+        "node": "matriz_distancias"
+      },
+      {
+        "id": "BC-H05",
+        "statement": "El día se divide en franjas horarias y cada franja tiene un factor que indica cuánto más lento es circular.",
+        "node": "perfil_trafico"
+      },
+      {
+        "id": "BC-H06",
+        "statement": "La jornada define desde qué hora y hasta qué hora pueden salir los camiones y a qué hora deben estar de regreso.",
+        "node": "jornada"
+      },
+      {
+        "id": "BC-H07",
+        "statement": "Se conoce el precio del combustible y es constante durante la jornada.",
+        "node": "parametros_costo"
+      },
+      {
+        "id": "BC-H08",
+        "statement": "La red vial respeta sentidos de circulación y restricciones permanentes, y su estructura no cambia durante la ejecución.",
+        "node": "red_vial"
+      },
+      {
+        "id": "BC-H09",
+        "statement": "Tiempo, costo y distancia tienen la misma importancia: cada uno pesa un tercio.",
+        "node": "entrada_pesos"
+      },
+      {
+        "id": "BC-H10",
+        "statement": "El escenario es un día hábil, con hora pico de 7:00 a 9:00, de 13:00 a 15:00 y de 18:00 a 20:00.",
+        "node": "supuesto_dia_habil"
+      },
+      {
+        "id": "BC-H11",
+        "statement": "Los camiones pueden salir entre las 6:00 y las 9:00, cada 15 minutos, y deben regresar antes de las 14:00.",
+        "node": "jornada"
+      },
+      {
+        "id": "BC-H12",
+        "statement": "Cargar un punto tarda 3 minutos más 1 minuto por cada 100 kg de basura.",
+        "node": "tiempo_servicio_punto"
+      },
+      {
+        "id": "BC-H13",
+        "statement": "El diésel cuesta 26 pesos por litro y cada camión tiene un costo fijo de envío y un costo por hora de tripulación.",
+        "node": "parametros_costo"
+      }
+    ],
+    "rules": [
+      {
+        "id": "BC-R01",
+        "statement": "Si un punto existe en el escenario, entonces debe estar en la ruta de exactamente un camión enviado.",
+        "node": "restriccion_unicidad"
+      },
+      {
+        "id": "BC-R02",
+        "statement": "Si la basura asignada a un camión supera su capacidad, entonces la solución no es válida.",
+        "node": "restriccion_capacidad"
+      },
+      {
+        "id": "BC-R03",
+        "statement": "Si un camión es enviado, entonces tiene una ruta no vacía y una hora de salida; si no es enviado, no tiene ninguna.",
+        "node": "restriccion_coherencia_envio"
+      },
+      {
+        "id": "BC-R04",
+        "statement": "Si un camión es enviado, entonces su hora de salida está dentro de la ventana y en un paso válido.",
+        "node": "restriccion_ventana_salida"
+      },
+      {
+        "id": "BC-R05",
+        "statement": "Si un camión regresa después del cierre de la jornada, entonces la solución no es válida.",
+        "node": "restriccion_cierre_jornada"
+      },
+      {
+        "id": "BC-R06",
+        "statement": "Si un tramo se recorre en una franja con factor f, entonces su tiempo es el tiempo sin tráfico multiplicado por f; si cruza un cambio de franja, se calcula por partes.",
+        "node": "simulacion_recorrido"
+      },
+      {
+        "id": "BC-R07",
+        "statement": "Si un camión lleva más basura, entonces gasta más combustible por kilómetro.",
+        "node": "costo_combustible"
+      },
+      {
+        "id": "BC-R08",
+        "statement": "Si un camión es enviado, entonces se suma su costo fijo, su combustible y el pago de su tripulación por el tiempo de operación.",
+        "node": "costo_total"
+      },
+      {
+        "id": "BC-R09",
+        "statement": "Si la distancia entre dos ubicaciones es desconocida, entonces no se inventa: se informa el error y se detiene el cálculo.",
+        "node": "validacion_matriz"
+      },
+      {
+        "id": "BC-R10",
+        "statement": "Si un punto tiene más basura que el camión más grande, o la basura total supera la capacidad de la flota, entonces el escenario no se puede resolver.",
+        "node": "validacion_capacidad_basica"
+      },
+      {
+        "id": "BC-R11",
+        "statement": "Si un punto no se puede visitar ida y vuelta dentro de la jornada ni en el mejor caso de tráfico, entonces el escenario no se puede resolver.",
+        "node": "validacion_jornada"
+      },
+      {
+        "id": "BC-R12",
+        "statement": "Si dos soluciones son válidas, entonces es mejor la que tiene menor calificación combinada de tiempo, costo y distancia.",
+        "node": "aptitud"
+      },
+      {
+        "id": "BC-R13",
+        "statement": "En cada generación se conserva siempre la mejor solución encontrada.",
+        "node": "elitismo"
+      },
+      {
+        "id": "BC-R14",
+        "statement": "Si el servicio de rutas o de mapas falla, entonces se informa el error y no se generan distancias ni rutas.",
+        "node": "error_servicio_externo"
+      }
+    ]
+  },
   "genetic_algorithm": {
-    "role": "Optimizar conjuntamente la asignación de puntos a vehículos y el orden de visita de cada ruta.",
+    "role": "Optimizar conjuntamente qué camiones se envían, su hora de salida, la asignación de puntos y el orden de visita.",
     "individual_encoding": {
-      "type": "Secuencia de identificadores de puntos particionada en bloques por vehículo.",
-      "example": "[P03, P01] | [P02] | [P05, P04]",
-      "meaning": "Cada bloque representa el recorrido de un vehículo; el depósito se agrega implícitamente al inicio y al final.",
+      "type": "Lista de bloques, uno por camión enviado, con identificador del camión, hora de salida y secuencia de puntos.",
+      "example": "V2@06:30:[P03, P01] | V5@07:15:[P02, P05, P04]",
+      "meaning": "Cada bloque es un recorrido; el depósito se agrega implícitamente al inicio y al final. Los camiones ausentes no se envían.",
       "invariants": [
         "Cada punto aparece exactamente una vez.",
-        "Ninguna ruta excede la capacidad del vehículo asignado.",
-        "Los puntos no se dividen entre rutas."
+        "Cada camión aparece como máximo en un bloque.",
+        "Ningún bloque está vacío.",
+        "Ninguna ruta excede la capacidad de su camión.",
+        "La hora de salida está en la ventana y en un paso válido.",
+        "El regreso estimado es anterior al cierre de la jornada."
       ],
       "status": "Codificación conceptual; requiere prueba de operadores y mecanismo de reparación."
     },
@@ -1730,22 +3417,30 @@
       "population_size",
       "generations",
       "crossover_probability",
-      "mutation_probability"
+      "mutation_probability",
+      "w_tiempo",
+      "w_costo",
+      "w_distancia"
     ],
+    "initialization": "Mezcla de individuos aleatorios factibles y algunos construidos con heurística (vecino más cercano por camión) para reducir el riesgo de una población inicial sin soluciones factibles.",
+    "evaluation": "Simulación del recorrido en el tiempo: desde la hora de salida se suman tramos con tráfico por franja y tiempos de servicio; se obtienen tiempo, costo, distancia y hora de regreso; se calcula F(S) y A(S).",
     "operators": {
-      "selection": "Seleccionar padres en función de aptitud y factibilidad; método específico pendiente.",
-      "crossover": "Combinar secuencias sin duplicar ni perder puntos; operador específico pendiente.",
-      "mutation": "Modificar orden o asignación conservando los puntos; operador específico pendiente.",
-      "repair": "Reparar o impedir asignaciones con sobrecarga; estrategia pendiente de diseño.",
-      "elitism": "Conservar al menos el mejor individuo conocido, de acuerdo con el material de clase."
+      "selection": "Seleccionar padres en función de aptitud y factibilidad; método específico pendiente (p. ej., torneo).",
+      "crossover": "Combinar secuencias sin duplicar ni perder puntos; la hora de salida se hereda con la ruta del camión.",
+      "mutation": "Intercambio de puntos, reubicación de un punto en otro camión, cambio de la hora de salida en ±Δ, y envío o retiro de un camión con reasignación de sus puntos.",
+      "repair": "Reparar o impedir sobrecarga, salidas fuera de ventana y regresos después del cierre; estrategia pendiente.",
+      "pruning": "Reducir padres e hijos al tamaño de población conservando a los mejores; estrategia pendiente.",
+      "elitism": "Conservar al menos el mejor individuo conocido, de acuerdo con el material de clase.",
+      "best_archive": "Mantener las mejores soluciones factibles y distintas de toda la ejecución para obtener las tres mejores."
     },
     "generation_metrics": {
-      "best_fitness": "Mejor aptitud de la población.",
-      "worst_fitness": "Peor aptitud de la población.",
-      "average_fitness": "Promedio de aptitud de la población.",
+      "best_fitness": "Mejor aptitud combinada de la población.",
+      "worst_fitness": "Peor aptitud combinada de la población.",
+      "average_fitness": "Promedio de aptitud combinada de la población.",
+      "optional": "Tiempo, costo y distancia del mejor individuo por generación.",
       "measurement_timing": "Después de mutación y antes de la poda, según las diapositivas de clase."
     },
-    "global_optimum_claim": "No se garantiza que el algoritmo genético encuentre el óptimo global del CVRP; se reportan las mejores soluciones factibles encontradas."
+    "global_optimum_claim": "No se garantiza el óptimo global; se reportan las mejores soluciones factibles encontradas para los pesos elegidos."
   },
   "data_contract": {
     "inputs": {
@@ -1759,9 +3454,43 @@
       "vehicles": {
         "fields": [
           "vehicle_id",
-          "capacity_kg"
+          "capacity_kg",
+          "empty_weight_kg",
+          "fuel_empty_l_km",
+          "fuel_increase_l_km_per_kg",
+          "fixed_dispatch_cost_mxn",
+          "crew_cost_per_hour_mxn"
         ],
-        "count": "Variable."
+        "count": "Variable.",
+        "example": [
+          {
+            "vehicle_type": "compacto",
+            "capacity_kg": 5000,
+            "empty_weight_kg": 7000,
+            "fuel_empty_l_km": 0.3,
+            "fuel_increase_l_km_per_kg": 3e-05,
+            "fixed_dispatch_cost_mxn": 900,
+            "crew_cost_per_hour_mxn": 225
+          },
+          {
+            "vehicle_type": "mediano",
+            "capacity_kg": 8000,
+            "empty_weight_kg": 10000,
+            "fuel_empty_l_km": 0.38,
+            "fuel_increase_l_km_per_kg": 3e-05,
+            "fixed_dispatch_cost_mxn": 1200,
+            "crew_cost_per_hour_mxn": 260
+          },
+          {
+            "vehicle_type": "grande",
+            "capacity_kg": 12000,
+            "empty_weight_kg": 13500,
+            "fuel_empty_l_km": 0.45,
+            "fuel_increase_l_km_per_kg": 3e-05,
+            "fixed_dispatch_cost_mxn": 1600,
+            "crew_cost_per_hour_mxn": 300
+          }
+        ]
       },
       "collection_points": {
         "fields": [
@@ -1779,25 +3508,117 @@
           "crossover_probability",
           "mutation_probability"
         ]
+      },
+      "objective_weights": {
+        "fields": [
+          "w_time",
+          "w_cost",
+          "w_distance"
+        ],
+        "rule": "No negativos; suman 1.",
+        "default": {
+          "w_time": 0.3333333333333333,
+          "w_cost": 0.3333333333333333,
+          "w_distance": 0.3333333333333333
+        }
+      },
+      "workday": {
+        "fields": [
+          "departure_window_start",
+          "departure_window_end",
+          "return_deadline",
+          "step_minutes"
+        ],
+        "example": {
+          "departure_window_start": "06:00",
+          "departure_window_end": "09:00",
+          "return_deadline": "14:00",
+          "step_minutes": 15
+        },
+        "example_status": "valor_generado"
+      },
+      "traffic_profile": {
+        "fields": [
+          "start",
+          "end",
+          "factor"
+        ],
+        "example": [
+          {
+            "start": "00:00",
+            "end": "06:00",
+            "factor": 1.0
+          },
+          {
+            "start": "06:00",
+            "end": "07:00",
+            "factor": 1.15
+          },
+          {
+            "start": "07:00",
+            "end": "09:00",
+            "factor": 1.55
+          },
+          {
+            "start": "09:00",
+            "end": "13:00",
+            "factor": 1.2
+          },
+          {
+            "start": "13:00",
+            "end": "15:00",
+            "factor": 1.4
+          },
+          {
+            "start": "15:00",
+            "end": "18:00",
+            "factor": 1.2
+          },
+          {
+            "start": "18:00",
+            "end": "20:00",
+            "factor": 1.5
+          },
+          {
+            "start": "20:00",
+            "end": "24:00",
+            "factor": 1.05
+          }
+        ],
+        "example_status": "valor_generado; día hábil; igual para toda la zona"
+      },
+      "cost_parameters": {
+        "fields": [
+          "fuel_price_mxn_l",
+          "service_time_fixed_min",
+          "service_time_min_per_kg"
+        ],
+        "example": {
+          "fuel_price_mxn_l": 26.0,
+          "service_time_fixed_min": 3,
+          "service_time_min_per_kg": 0.01
+        }
       }
     },
     "intermediate_data": {
       "distance_matrix": {
         "dimensions": "N x N; N es el depósito más todos los puntos de recolección.",
-        "distance": "Distancia vial entre cada par ordenado de ubicaciones.",
+        "distance": "Distancia vial en km del camino más corto entre cada par ordenado de ubicaciones.",
+        "base_time": "Tiempo en flujo libre en minutos de ese mismo camino.",
         "directed": "No asumir simetría debido a sentidos de circulación.",
         "null_policy": "Una conexión nula es un error de conectividad; no debe tratarse como cero.",
-        "calculation_timing": "Una vez por escenario antes de la ejecución del algoritmo genético."
+        "calculation_timing": "Una vez por escenario antes de la ejecución del algoritmo genético; el tráfico se aplica después."
       },
-      "route_geometry": "Geometría vial recuperada para dibujar los recorridos de los individuos presentados."
+      "route_geometry": "Geometría vial recuperada para dibujar los recorridos de los individuos presentados.",
+      "normalization_references": "T_ref, C_ref y D_ref calculados una vez por ejecución."
     },
     "outputs": {
-      "top_three_individuals": "Tres mejores soluciones factibles, ordenadas por menor distancia total.",
-      "per_vehicle_route": "Asignación de puntos, orden de visita, carga asignada, capacidad y distancia de cada vehículo.",
-      "total_fleet_distance": "Distancia total recorrida por toda la flota, en km.",
+      "top_three_individuals": "Tres mejores soluciones factibles y distintas, ordenadas por aptitud combinada.",
+      "per_vehicle_route": "Camión, hora de salida, hora de regreso, puntos y orden de visita, carga, capacidad, tiempo, costo y distancia de cada camión enviado.",
       "interactive_map": "Mapa con depósito, puntos y geometrías de rutas diferenciadas.",
-      "fitness_evolution_chart": "Curvas de mejor, peor y promedio de aptitud por generación.",
-      "comparison_table": "Comparación de los tres mejores individuos y sus métricas."
+      "fitness_evolution_chart": "Curvas de mejor, peor y promedio de aptitud combinada por generación.",
+      "comparison_table": "Comparación de los tres mejores individuos y sus métricas.",
+      "fleet_totals": "Tiempo total (min), costo total (MXN), distancia total (km) y número de camiones enviados."
     }
   },
   "architecture": {
@@ -1815,12 +3636,12 @@
       {
         "name": "Motor de rutas y matriz",
         "technology": "Valhalla",
-        "responsibility": "Calcular distancias viales y geometría de recorridos."
+        "responsibility": "Calcular distancias viales, tiempos base y geometría de recorridos."
       },
       {
         "name": "Motor de optimización",
         "technology": "Python",
-        "responsibility": "Construir y evaluar población, aplicar operadores genéticos y seleccionar las mejores soluciones."
+        "responsibility": "Aplicar el perfil de tráfico, simular recorridos, construir y evaluar la población, aplicar operadores genéticos y seleccionar las mejores soluciones."
       },
       {
         "name": "Almacenamiento temporal",
@@ -1829,62 +3650,96 @@
       }
     ],
     "workflow": [
-      "El usuario selecciona el depósito y registra puntos sobre el mapa.",
-      "El usuario captura la demanda de cada punto y registra vehículos con sus capacidades.",
+      "El usuario selecciona el depósito y registra puntos sobre el mapa con su demanda.",
+      "El usuario registra los vehículos con capacidad, consumo y costos.",
+      "El usuario define la jornada, el perfil de tráfico, los costos generales y los pesos de los objetivos.",
       "El usuario configura los parámetros del algoritmo genético.",
-      "El sistema valida coordenadas, demandas, capacidades y conectividad vial.",
-      "Valhalla calcula la matriz de distancias con criterio basado en distancia.",
-      "Python ejecuta el algoritmo genético usando la matriz en memoria.",
-      "El sistema selecciona los tres mejores individuos factibles.",
+      "El sistema valida coordenadas, demandas, capacidades, jornada, perfil de tráfico, pesos y conectividad vial.",
+      "Valhalla calcula las matrices de distancia y tiempo base con criterio basado en distancia.",
+      "Python calcula las referencias de normalización y ejecuta el algoritmo genético simulando cada recorrido con tráfico.",
+      "El sistema selecciona los tres mejores individuos factibles del archivo de mejores.",
       "Valhalla proporciona geometrías de rutas y Leaflet las muestra en el mapa.",
-      "El sistema presenta tablas comparativas y evolución de aptitud."
+      "El sistema presenta tablas comparativas con tiempo, costo y distancia, y la evolución de aptitud."
     ],
     "external_services_note": "La visualización de tiles, la cobertura cartográfica y el servicio de ruteo son dependencias distintas. Los servicios públicos pueden tener límites de uso y disponibilidad; se debe permitir configurar proveedores o desplegar servicios propios si la demostración lo requiere."
   },
-  "scope_v1": {
+  "scope": {
+    "version": "2.1",
     "included": [
       "Una zona urbana configurable por escenario.",
-      "Un centro de operaciones.",
-      "Cantidad variable de vehículos.",
-      "Capacidades de carga heterogéneas.",
-      "Cantidad variable de puntos de recolección.",
-      "Demanda conocida en kg por punto.",
+      "Un centro de operaciones, que también es el lugar de descarga.",
+      "Cantidad variable de vehículos; el agente decide cuáles se envían.",
+      "Capacidades, consumos y costos heterogéneos por vehículo.",
+      "Hora de salida por vehículo entre 6:00 y 9:00 en pasos de 15 minutos.",
+      "Tráfico por franja horaria mediante un perfil generado de día hábil.",
+      "Cantidad variable de puntos de recolección con demanda conocida en kg y tiempo de servicio.",
       "Mapa geográfico real y red vial disponible.",
-      "Matriz de distancias viales.",
-      "Un recorrido por vehículo.",
-      "Minimización de kilómetros totales.",
+      "Matrices de distancia y tiempo base.",
+      "Un recorrido por vehículo enviado dentro de la jornada.",
+      "Minimización de tiempo de recorrido, costo de operación y distancia total mediante suma ponderada.",
       "Presentación de tres mejores individuos factibles y curvas de aptitud."
     ],
     "assumptions": [
-      "Red vial estática durante la optimización.",
-      "Sin bloqueos temporales, accidentes, obras ni tráfico dinámico.",
+      "La estructura de la red vial es estática; solo la velocidad cambia por franja horaria.",
+      "El tráfico se describe con un factor por franja, igual para todas las calles de la zona.",
+      "El camino entre dos ubicaciones es siempre el de menor distancia y no cambia con la hora.",
+      "Sin bloqueos temporales, accidentes ni obras.",
       "Se respetan sentidos únicos y restricciones permanentes de circulación presentes en los datos y el perfil.",
       "Todos los puntos deben tener acceso vial válido.",
-      "La demanda de cada punto es conocida y fija.",
+      "La demanda y el tiempo de servicio de cada punto son conocidos y fijos.",
       "Todos los vehículos comparten un perfil físico de circulación común.",
-      "Las capacidades individuales de carga sí pueden variar.",
-      "Los vehículos utilizados salen y regresan al mismo depósito."
+      "Las capacidades, consumos y costos individuales sí pueden variar.",
+      "Los vehículos enviados salen y regresan al mismo depósito, donde descargan.",
+      "Hay tripulación disponible para cada camión enviado.",
+      "Los camiones no esperan voluntariamente; solo se detienen para dar servicio.",
+      "Precios y tarifas constantes durante la jornada.",
+      "Todos los escenarios representan un día hábil.",
+      "Los valores de tráfico, costos y tiempos de servicio son de referencia, no medidos."
     ],
     "excluded": [
       "Múltiples depósitos.",
       "Varios viajes por vehículo.",
       "División de la demanda de un punto entre vehículos.",
       "Optimización del equilibrio de carga o distancia entre vehículos.",
-      "Optimización de tiempo de conducción o combustible.",
       "Tráfico en tiempo real.",
+      "Cambio de camino entre dos puntos según la hora.",
+      "Horarios de atención específicos por punto.",
+      "Sitio de disposición distinto del depósito.",
       "Bloqueos temporales, accidentes u obras.",
       "Clima dinámico.",
       "Dimensiones y restricciones físicas individuales de cada vehículo.",
+      "Frente de Pareto como resultado.",
       "Base de datos persistente.",
-      "Escenarios predefinidos obligatorios o terreno vial aleatorio."
-    ]
+      "Escenarios predefinidos obligatorios o terreno vial aleatorio.",
+      "Perfil de tráfico de fin de semana o días festivos.",
+      "Tráfico distinto por tipo de calle."
+    ],
+    "changes_from_v1": {
+      "removed_from_excluded": [
+        "Optimización de tiempo de conducción o combustible."
+      ],
+      "replaced_assumption": "Sin tráfico dinámico -> tráfico por franja horaria predefinido.",
+      "previous_included": [
+        "Una zona urbana configurable por escenario.",
+        "Un centro de operaciones.",
+        "Cantidad variable de vehículos.",
+        "Capacidades de carga heterogéneas.",
+        "Cantidad variable de puntos de recolección.",
+        "Demanda conocida en kg por punto.",
+        "Mapa geográfico real y red vial disponible.",
+        "Matriz de distancias viales.",
+        "Un recorrido por vehículo.",
+        "Minimización de kilómetros totales.",
+        "Presentación de tres mejores individuos factibles y curvas de aptitud."
+      ]
+    }
   },
   "technical_debts_and_validation": {
     "delimited_by_scope": [
       {
         "id": "TD-01",
         "topic": "Tráfico, bloqueos y condiciones cambiantes",
-        "resolution": "Excluidos; red vial estática."
+        "resolution": "Tráfico incluido solo como perfil por franja horaria; bloqueos, accidentes y tráfico en vivo excluidos."
       },
       {
         "id": "TD-02",
@@ -1894,17 +3749,22 @@
       {
         "id": "TD-03",
         "topic": "Varios depósitos o viajes",
-        "resolution": "Excluidos; un depósito y un recorrido por vehículo."
+        "resolution": "Excluidos; un depósito, que también es lugar de descarga, y un recorrido por vehículo."
       },
       {
         "id": "TD-04",
-        "topic": "Equilibrio de trabajo, tiempo y combustible",
-        "resolution": "Excluidos; única métrica: distancia total."
+        "topic": "Equilibrio de trabajo entre camiones",
+        "resolution": "Excluido; los objetivos son tiempo, costo y distancia totales."
       },
       {
         "id": "TD-05",
         "topic": "Puntos sin acceso vial",
         "resolution": "No se optimizan; se validan y deben corregirse o rechazarse."
+      },
+      {
+        "id": "TD-13",
+        "topic": "Elección del camino según el tráfico",
+        "resolution": "Excluida; el camino es fijo y solo cambia el tiempo."
       }
     ],
     "implementation_still_required": [
@@ -1915,13 +3775,13 @@
       },
       {
         "id": "TD-07",
-        "topic": "Reparación o preservación de capacidades",
+        "topic": "Reparación o preservación de capacidades y jornada",
         "status": "Estrategia específica pendiente."
       },
       {
         "id": "TD-08",
         "topic": "Distinguir escenarios imposibles de fallos heurísticos",
-        "status": "Protocolo pendiente; las condiciones de demanda total son solo filtros necesarios."
+        "status": "Protocolo pendiente; las condiciones de demanda total y de jornada son solo filtros necesarios."
       },
       {
         "id": "TD-09",
@@ -1940,8 +3800,38 @@
       },
       {
         "id": "TD-12",
-        "topic": "Confirmar que tres componentes de una sola métrica satisfacen el formato del profesor",
-        "status": "Confirmación académica pendiente."
+        "topic": "Confirmar con el profesor la suma ponderada frente a un frente de Pareto",
+        "status": "Resuelto: suma ponderada normalizada con pesos iguales."
+      },
+      {
+        "id": "TD-14",
+        "topic": "Perfil de tráfico de la zona",
+        "status": "Resuelto con valores generados acordados con el profesor; calibración real fuera de alcance."
+      },
+      {
+        "id": "TD-15",
+        "topic": "Simulación del recorrido con cruce de franjas sin violar FIFO",
+        "status": "Diseño y pruebas pendientes."
+      },
+      {
+        "id": "TD-16",
+        "topic": "Cálculo fijo de las referencias de normalización",
+        "status": "Diseño pendiente."
+      },
+      {
+        "id": "TD-17",
+        "topic": "Justificar los pesos de los objetivos",
+        "status": "Pesos iguales decididos; prueba de sensibilidad pendiente para documentar su efecto."
+      },
+      {
+        "id": "TD-18",
+        "topic": "Valores reales de consumo y costos de los camiones",
+        "status": "Resuelto con valores generados de referencia."
+      },
+      {
+        "id": "TD-19",
+        "topic": "Límite de ubicaciones por matriz en la instancia de Valhalla",
+        "status": "Límite por confirmar."
       }
     ],
     "acceptance_tests": [
@@ -1952,7 +3842,218 @@
       "Comprobar que cada punto aparezca exactamente una vez después de cada operador genético.",
       "Comprobar que los tres resultados presentados sean factibles y estén ordenados por distancia total.",
       "Comprobar la medición de mejor, peor y promedio de aptitud después de mutación y antes de poda.",
-      "Simular la indisponibilidad de Valhalla y verificar que no se inventen distancias ni rutas."
+      "Simular la indisponibilidad de Valhalla y verificar que no se inventen distancias ni rutas.",
+      "Verificar que la misma ruta tarda más en hora pico y mide lo mismo.",
+      "Verificar que salir más tarde nunca produzca una llegada más temprana en el mismo tramo.",
+      "Verificar que ninguna solución salga fuera de la ventana ni regrese después del cierre.",
+      "Verificar el costo contra un caso pequeño calculado a mano.",
+      "Verificar que no existan camiones enviados sin ruta ni camiones no enviados con ruta.",
+      "Verificar que al favorecer un objetivo con su peso la solución mejore en ese objetivo.",
+      "Verificar con una ruta larga que salir a las 9:00 hace incumplir el cierre y que el agente adelanta la salida o envía otro camión."
+    ]
+  },
+  "adversarial_review": {
+    "date": "2026-11-24",
+    "method": "Revisión adversaria: se buscaron contradicciones con los nuevos criterios, relaciones incorrectas, supuestos que el agente podría explotar, huecos de datos y pruebas faltantes.",
+    "new_criteria": {
+      "decision_variables": [
+        "ruta",
+        "camiones enviados",
+        "hora de salida"
+      ],
+      "optimization_variables": [
+        "tiempo de recorrido",
+        "costo",
+        "distancia total"
+      ],
+      "context": "tráfico en ciertos horarios"
+    },
+    "findings": [
+      {
+        "id": "RA-01",
+        "severity": "alta",
+        "finding": "El grafo era monoobjetivo y excluía tiempo y combustible, en contradicción con los nuevos objetivos de tiempo y costo.",
+        "correction": "Se agregaron obj_tiempo y obj_costo, objetivo_global los combina y se eliminó fuera_tiempo_combustible.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-02",
+        "severity": "alta",
+        "finding": "El supuesto 'sin tráfico dinámico' impedía modelar tráfico por horario.",
+        "correction": "Se reemplazó por supuesto_trafico_franjas con perfil_trafico y franja_horaria.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-03",
+        "severity": "alta",
+        "finding": "No existían las variables de camiones enviados ni de hora de salida.",
+        "correction": "Se agregaron dv_camiones_enviados y dv_hora_salida; la ruta agrupa x, p e y.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-04",
+        "severity": "alta",
+        "finding": "Sin una jornada, el agente podría elegir salir a las 3:00 para evitar el tráfico, una solución inútil en la práctica.",
+        "correction": "Se agregaron jornada, ventana de salida y cierre de regreso como restricciones.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-05",
+        "severity": "alta",
+        "finding": "Sumar minutos, pesos y kilómetros sin normalizar hace que domine la unidad con números más grandes; normalizar con referencias que cambian por generación invalida la gráfica de aptitud.",
+        "correction": "Normalización con referencias fijas por ejecución.",
+        "state": "corregido en diseño; implementación pendiente"
+      },
+      {
+        "id": "RA-06",
+        "severity": "alta",
+        "finding": "OpenStreetMap y Valhalla no proporcionan tráfico por hora; el objetivo de tiempo no tiene fuente de datos.",
+        "correction": "El perfil de tráfico es una entrada calibrable; se registraron límite y deuda técnica.",
+        "state": "pendiente de datos"
+      },
+      {
+        "id": "RA-07",
+        "severity": "media",
+        "finding": "Multiplicar todo un tramo por el factor de su hora de inicio puede hacer que salir más tarde llegue antes (violación de FIFO).",
+        "correction": "Regla de avance por franjas en la simulación del recorrido y prueba FIFO.",
+        "state": "corregido en diseño"
+      },
+      {
+        "id": "RA-08",
+        "severity": "media",
+        "finding": "Con shortest=true el tiempo devuelto es el del camino más corto, no el del más rápido; el tiempo puede quedar sobrestimado en hora pico.",
+        "correction": "Se declaró el supuesto de camino fijo y se excluyó el cambio de camino por hora.",
+        "state": "delimitado"
+      },
+      {
+        "id": "RA-09",
+        "severity": "media",
+        "finding": "El costo no tenía componentes ni datos: faltaban precio del combustible, consumo y costos por camión.",
+        "correction": "Se definieron costo fijo, combustible según distancia y carga, y tripulación, con sus entradas.",
+        "state": "corregido; valores pendientes"
+      },
+      {
+        "id": "RA-10",
+        "severity": "media",
+        "finding": "Sin costo fijo por camión, enviar menos camiones no aporta nada y la variable de camiones enviados sería irrelevante.",
+        "correction": "Se agregó costo_fijo ligado a dv_camiones_enviados.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-11",
+        "severity": "media",
+        "finding": "Tiempo, costo y distancia están correlacionados; con pesos iguales, la distancia cuenta casi doble.",
+        "correction": "Riesgo registrado y prueba de sensibilidad de pesos.",
+        "state": "riesgo abierto"
+      },
+      {
+        "id": "RA-12",
+        "severity": "media",
+        "finding": "No había tiempo de servicio en los puntos; el tiempo de recorrido solo contaría el manejo.",
+        "correction": "Se agregó tiempo_servicio_punto y tiempo_servicio.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-13",
+        "severity": "media",
+        "finding": "El elitismo aparecía como mecanismo que conserva los tres mejores; solo conserva el mejor.",
+        "correction": "Se agregó archivo_mejores, que produce las tres mejores soluciones.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-14",
+        "severity": "media",
+        "finding": "La gráfica se mide 'antes de poda', pero la poda no estaba definida.",
+        "correction": "Se agregó el nodo poda.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-15",
+        "severity": "media",
+        "finding": "No se decía dónde se descarga la basura; un relleno sanitario distinto cambiaría tiempos y costos.",
+        "correction": "Supuesto de descarga en el depósito y exclusión explícita del sitio de disposición.",
+        "state": "delimitado"
+      },
+      {
+        "id": "RA-16",
+        "severity": "baja",
+        "finding": "La relación supuesto_red_estatica 'excluye' contexto_urbano no tenía sentido.",
+        "correction": "Se eliminó.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-17",
+        "severity": "baja",
+        "finding": "Restricciones de un viaje y de demanda no divisible, y el operador de selección, no se relacionaban con lo que controlan o usan.",
+        "correction": "Se agregaron las relaciones faltantes.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-18",
+        "severity": "baja",
+        "finding": "No existía una base de conocimiento explícita; hechos y reglas estaban dispersos.",
+        "correction": "Se agregó base_conocimiento con hechos y reglas, y la sección knowledge_base.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-19",
+        "severity": "baja",
+        "finding": "Agregar hora y camiones enviados amplía mucho el espacio de búsqueda.",
+        "correction": "Hora discretizada en pasos y población inicial con heurística.",
+        "state": "riesgo abierto"
+      },
+      {
+        "id": "RA-20",
+        "severity": "baja",
+        "finding": "Las matrices de Valhalla tienen un límite de ubicaciones por solicitud.",
+        "correction": "Se registró límite y deuda técnica.",
+        "state": "pendiente de confirmar"
+      },
+      {
+        "id": "RA-21",
+        "severity": "alta",
+        "finding": "Con la ventana de 5:00 a 8:00, salir a las 5:00 siempre ganaba: no había tráfico ni costo por salir temprano, así que la hora de salida no aportaba al resultado.",
+        "correction": "La ventana se movió a 6:00-9:00. Se comprobó con una simulación que la duración cambia con la hora de salida y que el cierre de las 14:00 crea una disyuntiva real.",
+        "state": "mitigado"
+      },
+      {
+        "id": "RA-22",
+        "severity": "media",
+        "finding": "Con la nueva ventana tiende a ganar la última salida, las 9:00. Si las rutas son cortas, la variable vuelve a ser casi trivial.",
+        "correction": "Las pruebas deben incluir escenarios con rutas largas que se acerquen al cierre.",
+        "state": "riesgo abierto"
+      }
+    ],
+    "decisions_to_confirm": [],
+    "decisions_resolved": [
+      {
+        "decision": "Método de combinación de objetivos",
+        "answer": "Suma ponderada normalizada."
+      },
+      {
+        "decision": "Pesos",
+        "answer": "1/3 para tiempo, costo y distancia."
+      },
+      {
+        "decision": "Perfil de tráfico",
+        "answer": "Valores generados, acordados con el profesor; igual para toda la zona; solo día hábil."
+      },
+      {
+        "decision": "Jornada",
+        "answer": "Salida entre 6:00 y 9:00 cada 15 minutos; regreso antes de las 14:00."
+      },
+      {
+        "decision": "Costos y consumo",
+        "answer": "Valores de referencia generados (ver reference_values)."
+      },
+      {
+        "decision": "Tiempo de servicio",
+        "answer": "3 minutos más 1 minuto por cada 100 kg."
+      },
+      {
+        "decision": "Cierre de jornada",
+        "answer": "Se mantiene a las 14:00 con la ventana de salida 6:00-9:00; es lo que da sentido a la hora de salida."
+      }
     ]
   },
   "academic_alignment": {
@@ -1976,7 +4077,7 @@
         "evolución de mejor, peor y promedio de aptitud"
       ]
     },
-    "format_note": "El formato solicita al menos tres variables a optimizar. SIRUGA presenta tres componentes de distancia que se suman en un único objetivo monoobjetivo. Debe confirmarse con el profesor que acepta esta interpretación; no debe describirse como optimización multiobjetivo."
+    "format_note": "El formato solicita al menos tres variables a optimizar. En la versión 2.0 SIRUGA optimiza tres variables reales: tiempo de recorrido, costo y distancia total. Se combinan con una suma ponderada normalizada para usar una sola aptitud en el algoritmo genético. Debe confirmarse con el profesor que acepta la escalarización y explicarse que los tres objetivos están correlacionados."
   },
   "references": [
     {
