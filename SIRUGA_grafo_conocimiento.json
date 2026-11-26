@@ -5,7 +5,7 @@
   "metadata": {
     "project_id": "SIRUGA",
     "project_title": "Sistema inteligente basado en algoritmos genéticos para la optimización de rutas de recolección de residuos urbanos mediante una flota heterogénea de vehículos y una red vial geográfica",
-    "generated_date": "2026-11-24",
+    "generated_date": "2026-11-25",
     "purpose": "Grafo de conocimiento para documentar el contexto, formulación, alcance, supuestos, restricciones, base de conocimiento, tecnologías, entradas, salidas, algoritmo genético, validaciones, decisiones y revisión adversaria del proyecto.",
     "status_legend": {
       "acordado": "Decisión tomada durante el diseño de la propuesta.",
@@ -19,7 +19,7 @@
       "valor_de_ejemplo": "Valor ilustrativo que debe sustituirse por datos calibrados de la zona.",
       "valor_generado": "Valor de referencia generado para el proyecto, acordado con el profesor; se puede cambiar en la interfaz."
     },
-    "graph_version": "2.1",
+    "graph_version": "2.2",
     "previous_version": "1.0 (2026-11-15): monoobjetivo, minimizar solo la distancia total, sin tráfico ni hora de salida."
   },
   "project": {
@@ -30,8 +30,8 @@
     "optimization_type": "multiobjetivo (tres objetivos) resuelto mediante suma ponderada normalizada",
     "scope_version": "2.0",
     "scope_status": "Alcance ampliado con tiempo, costo, tráfico por franja horaria y hora de salida. La implementación, integración y pruebas todavía están pendientes.",
-    "nodes_count": 157,
-    "edges_count": 311,
+    "nodes_count": 160,
+    "edges_count": 329,
     "objectives": [
       "Minimizar el tiempo de recorrido total de la flota, en minutos.",
       "Minimizar el costo total de operación, en pesos mexicanos (MXN).",
@@ -290,14 +290,15 @@
         "id": "aptitud",
         "type": "fitness_function",
         "name": "Función de aptitud",
-        "description": "Para individuos factibles, la aptitud es inversamente proporcional a una calificación combinada de tiempo, costo y distancia. Cada objetivo se divide entre un valor de referencia fijo para la ejecución, de modo que las tres unidades sean comparables, y se pondera con pesos definidos por el usuario.",
+        "description": "La aptitud se calcula para todas las soluciones. En las válidas usa la calificación combinada F; en las inválidas usa F más una penalización. Las inválidas nunca entran al archivo de mejores soluciones.",
         "status": "acordado",
         "attributes": {
           "formula": "A(S) = 1 / (1 + F(S));  F(S) = w_t*T_total/T_ref + w_c*C_total/C_ref + w_d*D_total/D_ref",
           "pesos": "w_t = w_c = w_d = 1/3 por defecto; capturados como entrada",
           "valores_de_referencia": "T_ref, C_ref y D_ref se calculan una sola vez al inicio de la ejecución con una solución heurística (p. ej., vecino más cercano) y no cambian entre generaciones",
-          "dominio": "solo individuos factibles",
-          "nota": "Si las referencias cambiaran en cada generación, la aptitud no sería comparable entre generaciones y la gráfica de evolución perdería sentido. La política para individuos infactibles sigue pendiente."
+          "dominio": "todas las soluciones; las inválidas con F penalizada",
+          "nota": "V(S) mide la violación: exceso de carga dividido entre la capacidad del camión más los minutos de retraso divididos entre 60. Como F de una solución heurística vale cerca de 1 por la normalización, λ = 10 asegura que una inválida quede por debajo de las válidas comparables.",
+          "formula_penalizada": "A(S) = 1 / (1 + F(S) + λ * V(S)); λ = 10"
         }
       },
       {
@@ -475,36 +476,92 @@
         "id": "seleccion",
         "type": "genetic_operator",
         "name": "Selección",
-        "description": "Selecciona individuos para reproducción según su aptitud combinada y su factibilidad.",
-        "status": "metodo_general_acordado; estrategia_especifica_pendiente"
+        "description": "Torneo de 3: se toman 3 soluciones al azar de la población y gana la mejor según la regla de factibilidad. Se repite para cada padre.",
+        "status": "acordado",
+        "attributes": {
+          "metodo": "torneo",
+          "k": 3,
+          "criterio": "Una solución válida siempre gana a una inválida; entre válidas gana la de menor F; entre inválidas, la de menor F penalizada."
+        }
       },
       {
         "id": "cruza",
         "type": "genetic_operator",
         "name": "Cruza",
-        "description": "Combina dos individuos sin duplicar ni perder puntos. La hora de salida de cada camión se hereda del padre que aporta su ruta.",
-        "status": "metodo_general_acordado; operador_especifico_pendiente"
+        "description": "Cruza por rutas: el hijo copia al padre A y recibe una ruta completa del padre B con su camión y su hora de salida. Los puntos de esa ruta se quitan de donde estaban en el hijo; si el camión ya tenía otra ruta en el hijo, esa ruta se reemplaza y sus puntos sobrantes se reinsertan. Cada punto pendiente se reinserta donde menos aumente la distancia, en una ruta con capacidad libre. Se generan dos hijos intercambiando el papel de los padres.",
+        "status": "acordado",
+        "attributes": {
+          "probabilidad": 0.85,
+          "pasos": [
+            "Copiar al padre A.",
+            "Elegir al azar una ruta del padre B con su camión y su hora.",
+            "Quitar del hijo los puntos de esa ruta.",
+            "Si el camión ya tiene ruta en el hijo, reemplazarla y mandar sus puntos restantes a la lista de pendientes.",
+            "Insertar la ruta de B.",
+            "Reinsertar cada punto pendiente en la posición de menor aumento de distancia (matriz estática) en una ruta con capacidad libre; si no cabe en ninguna, enviar un camión disponible con hora al azar dentro de la ventana.",
+            "Quitar rutas vacías: su camión pasa a no enviado.",
+            "Reparar y evaluar."
+          ],
+          "nota": "La reinserción usa la distancia de la matriz y no la simulación con tráfico, para que sea rápida; la evaluación completa se hace una vez al final."
+        }
       },
       {
         "id": "mutacion",
         "type": "genetic_operator",
         "name": "Mutación",
-        "description": "Modifica la solución sin perder ni duplicar puntos. Tipos previstos: intercambiar el orden de dos puntos, mover un punto a otro camión, adelantar o atrasar la hora de salida un paso, y enviar o retirar un camión reasignando sus puntos. Debe respetar las capacidades y la jornada o activar reparación.",
-        "status": "metodo_general_acordado; operador_especifico_pendiente"
+        "description": "Con probabilidad 0.20 por solución se aplica uno de cinco tipos elegido al azar con igual probabilidad. El intercambio es el operador del material de clase; los demás permiten cambiar la hora de salida y los camiones enviados.",
+        "status": "acordado",
+        "attributes": {
+          "probabilidad_por_solucion": 0.2,
+          "tipos": [
+            {
+              "id": "M1",
+              "nombre": "Intercambio",
+              "detalle": "Intercambia la posición de dos puntos de una misma ruta."
+            },
+            {
+              "id": "M2",
+              "nombre": "Inversión de tramo",
+              "detalle": "Invierte el orden de un tramo de puntos consecutivos de una ruta."
+            },
+            {
+              "id": "M3",
+              "nombre": "Reubicación",
+              "detalle": "Mueve un punto a otra ruta, en la posición de menor aumento de distancia."
+            },
+            {
+              "id": "M4",
+              "nombre": "Cambio de hora",
+              "detalle": "Adelanta o atrasa 15 minutos la hora de salida de un camión, sin salir de la ventana 6:00-9:00."
+            },
+            {
+              "id": "M5",
+              "nombre": "Enviar o retirar camión",
+              "detalle": "Retirar: un camión deja de salir y sus puntos se reinsertan en otras rutas. Enviar: un camión no enviado toma la segunda mitad de la ruta más larga, con hora al azar dentro de la ventana."
+            }
+          ],
+          "seleccion_del_tipo": "uniforme, 1/5 cada uno; si el tipo no aplica (p. ej., M1 en una ruta de un punto), se elige otro"
+        }
       },
       {
         "id": "reparacion_individuos",
         "type": "algorithm_mechanism",
         "name": "Reparación o preservación de factibilidad",
-        "description": "Mecanismo por diseñar para corregir individuos que excedan capacidades, salgan fuera de la ventana permitida o regresen después del cierre de la jornada, o para impedir que los operadores produzcan soluciones inválidas.",
-        "status": "pendiente_de_diseno_y_pruebas"
+        "description": "Después de cruza y mutación se intenta reparar cada solución inválida en dos pasos: primero la capacidad y después la jornada. Si después de reparar sigue sin cumplir, se le aplica una penalización.",
+        "status": "acordado",
+        "attributes": {
+          "paso_1_capacidad": "Mientras un camión exceda su capacidad, se saca el punto que menos distancia ahorra al quitarlo y se reinserta en otra ruta con capacidad libre; si no hay, se envía el camión disponible más grande.",
+          "paso_2_jornada": "Si un camión regresa después de las 14:00, se adelanta su salida en pasos de 15 minutos hasta las 6:00; si aún no alcanza, se mueve su último punto a otra ruta y se repite.",
+          "limite": "Máximo 2 veces el número de puntos en movimientos por solución, para evitar ciclos.",
+          "si_falla": "Se aplica la penalización."
+        }
       },
       {
         "id": "elitismo",
         "type": "algorithm_mechanism",
         "name": "Conservación del mejor individuo",
-        "description": "Se conserva al menos el mejor individuo de cada generación para no perder la mejor solución encontrada. El elitismo no garantiza por sí solo conservar tres soluciones distintas; para eso existe el archivo de mejores soluciones.",
-        "status": "requisito_academico"
+        "description": "Queda garantizado por la poda: como se conservan las mejores de padres e hijos, la mejor solución encontrada nunca se pierde.",
+        "status": "acordado"
       },
       {
         "id": "poblacion",
@@ -592,7 +649,15 @@
         "type": "input",
         "name": "Entrada: parámetros del algoritmo genético",
         "description": "Parámetros configurables: tamaño de población, número de generaciones, probabilidad de cruza, probabilidad de mutación y pesos de los tres objetivos.",
-        "status": "acordado"
+        "status": "acordado",
+        "attributes": {
+          "valores_por_defecto": {
+            "population_size": 200,
+            "generations": 500,
+            "crossover_probability": 0.85,
+            "mutation_probability": 0.2
+          }
+        }
       },
       {
         "id": "sin_base_datos",
@@ -1219,8 +1284,14 @@
         "id": "poda",
         "type": "algorithm_mechanism",
         "name": "Poda o reemplazo de la población",
-        "description": "Reducción de la población combinada de padres e hijos al tamaño configurado, conservando a los mejores. Se menciona en la medición de la gráfica pero no estaba definida en la versión 1.",
-        "status": "metodo_general_acordado; estrategia_especifica_pendiente"
+        "description": "Se juntan padres e hijos, se eliminan las soluciones repetidas y se conservan las 200 mejores según la regla de factibilidad. Si después de quitar repetidas quedan menos de 200, se completan con soluciones nuevas al azar.",
+        "status": "acordado",
+        "attributes": {
+          "metodo": "(mu + lambda): mejores de padres e hijos",
+          "duplicados": "Dos soluciones son iguales si tienen los mismos camiones, horas y secuencias.",
+          "relleno": "soluciones nuevas al azar (inmigrantes)",
+          "elitismo": "incluido: la mejor solución nunca se pierde"
+        }
       },
       {
         "id": "archivo_mejores",
@@ -1458,6 +1529,42 @@
         "name": "Valores de referencia generados",
         "description": "Perfil de tráfico, jornada, flota de ejemplo, precio del combustible, tiempo de servicio y pesos generados para el proyecto. Se detallan en la sección reference_values.",
         "status": "valor_generado"
+      },
+      {
+        "id": "penalizacion",
+        "type": "algorithm_mechanism",
+        "name": "Penalización de soluciones inválidas",
+        "description": "Castigo que se suma a la calificación de una solución que no se pudo reparar, proporcional a cuánto excede la capacidad y cuánto se pasa del cierre.",
+        "status": "acordado",
+        "attributes": {
+          "formula": "F_pen = F + λ * V; V = suma(exceso_kg_i / C_i) + suma(retraso_min_i) / 60; λ = 10"
+        }
+      },
+      {
+        "id": "regla_factibilidad",
+        "type": "algorithm_mechanism",
+        "name": "Regla de comparación por factibilidad",
+        "description": "Una solución válida siempre gana a una inválida; entre válidas gana la de menor F; entre inválidas, la de menor F penalizada.",
+        "status": "acordado",
+        "attributes": {
+          "se_usa_en": [
+            "selección por torneo",
+            "poda"
+          ]
+        }
+      },
+      {
+        "id": "poblacion_inicial",
+        "type": "algorithm_mechanism",
+        "name": "Población inicial",
+        "description": "200 soluciones: el 20 % (40) se construye con la heurística del vecino más cercano, variando el orden de los camiones, el primer punto y la hora de salida para que no salgan iguales; el 80 % (160) se genera al azar: se revuelven los puntos, se reparten llenando camiones elegidos al azar sin pasar su capacidad y se asigna una hora al azar dentro de la ventana.",
+        "status": "acordado",
+        "attributes": {
+          "heuristica": 0.2,
+          "azar": 0.8,
+          "tamano": 200,
+          "referencias": "La mejor solución heurística define T_ref, C_ref y D_ref para la normalización."
+        }
       }
     ],
     "edges": [
@@ -3015,6 +3122,96 @@
         "source": "bc_hechos",
         "target": "valores_referencia",
         "relation": "incluye_hecho"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "penalizacion",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "regla_factibilidad",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "algoritmo_genetico",
+        "target": "poblacion_inicial",
+        "relation": "incluye_mecanismo"
+      },
+      {
+        "source": "reparacion_individuos",
+        "target": "penalizacion",
+        "relation": "recurre_a_si_falla"
+      },
+      {
+        "source": "penalizacion",
+        "target": "aptitud",
+        "relation": "modifica"
+      },
+      {
+        "source": "seleccion",
+        "target": "regla_factibilidad",
+        "relation": "utiliza"
+      },
+      {
+        "source": "poda",
+        "target": "regla_factibilidad",
+        "relation": "utiliza"
+      },
+      {
+        "source": "poda",
+        "target": "elitismo",
+        "relation": "garantiza"
+      },
+      {
+        "source": "poblacion_inicial",
+        "target": "normalizacion_objetivos",
+        "relation": "alimenta"
+      },
+      {
+        "source": "poblacion_inicial",
+        "target": "poblacion",
+        "relation": "genera"
+      },
+      {
+        "source": "cruza",
+        "target": "dv_ruta",
+        "relation": "modifica"
+      },
+      {
+        "source": "cruza",
+        "target": "dv_camiones_enviados",
+        "relation": "modifica"
+      },
+      {
+        "source": "cruza",
+        "target": "reparacion_individuos",
+        "relation": "activa"
+      },
+      {
+        "source": "mutacion",
+        "target": "dv_ruta",
+        "relation": "modifica"
+      },
+      {
+        "source": "mutacion",
+        "target": "reparacion_individuos",
+        "relation": "activa"
+      },
+      {
+        "source": "archivo_mejores",
+        "target": "regla_factibilidad",
+        "relation": "acepta_solo_validas_segun"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "regla_factibilidad",
+        "relation": "incluye_regla"
+      },
+      {
+        "source": "bc_reglas",
+        "target": "penalizacion",
+        "relation": "incluye_regla"
       }
     ]
   },
@@ -3394,6 +3591,16 @@
         "id": "BC-R14",
         "statement": "Si el servicio de rutas o de mapas falla, entonces se informa el error y no se generan distancias ni rutas.",
         "node": "error_servicio_externo"
+      },
+      {
+        "id": "BC-R15",
+        "statement": "Si una solución es válida y otra no, entonces gana la válida sin importar su calificación.",
+        "node": "regla_factibilidad"
+      },
+      {
+        "id": "BC-R16",
+        "statement": "Si una solución no se puede reparar, entonces su calificación empeora según cuánto se pasa de la capacidad y de la hora de cierre.",
+        "node": "penalizacion"
       }
     ]
   },
@@ -3411,7 +3618,7 @@
         "La hora de salida está en la ventana y en un paso válido.",
         "El regreso estimado es anterior al cierre de la jornada."
       ],
-      "status": "Codificación conceptual; requiere prueba de operadores y mecanismo de reparación."
+      "status": "Codificación acordada; operadores definidos; implementación y pruebas pendientes."
     },
     "population_parameters_as_inputs": [
       "population_size",
@@ -3422,25 +3629,89 @@
       "w_costo",
       "w_distancia"
     ],
-    "initialization": "Mezcla de individuos aleatorios factibles y algunos construidos con heurística (vecino más cercano por camión) para reducir el riesgo de una población inicial sin soluciones factibles.",
+    "initialization": "200 soluciones: el 20 % (40) se construye con la heurística del vecino más cercano, variando el orden de los camiones, el primer punto y la hora de salida para que no salgan iguales; el 80 % (160) se genera al azar: se revuelven los puntos, se reparten llenando camiones elegidos al azar sin pasar su capacidad y se asigna una hora al azar dentro de la ventana.",
     "evaluation": "Simulación del recorrido en el tiempo: desde la hora de salida se suman tramos con tráfico por franja y tiempos de servicio; se obtienen tiempo, costo, distancia y hora de regreso; se calcula F(S) y A(S).",
     "operators": {
-      "selection": "Seleccionar padres en función de aptitud y factibilidad; método específico pendiente (p. ej., torneo).",
-      "crossover": "Combinar secuencias sin duplicar ni perder puntos; la hora de salida se hereda con la ruta del camión.",
-      "mutation": "Intercambio de puntos, reubicación de un punto en otro camión, cambio de la hora de salida en ±Δ, y envío o retiro de un camión con reasignación de sus puntos.",
-      "repair": "Reparar o impedir sobrecarga, salidas fuera de ventana y regresos después del cierre; estrategia pendiente.",
-      "pruning": "Reducir padres e hijos al tamaño de población conservando a los mejores; estrategia pendiente.",
-      "elitism": "Conservar al menos el mejor individuo conocido, de acuerdo con el material de clase.",
-      "best_archive": "Mantener las mejores soluciones factibles y distintas de toda la ejecución para obtener las tres mejores."
+      "selection": "Torneo de 3: se toman 3 soluciones al azar de la población y gana la mejor según la regla de factibilidad. Se repite para cada padre.",
+      "crossover": "Cruza por rutas: el hijo copia al padre A y recibe una ruta completa del padre B con su camión y su hora de salida. Los puntos de esa ruta se quitan de donde estaban en el hijo; si el camión ya tenía otra ruta en el hijo, esa ruta se reemplaza y sus puntos sobrantes se reinsertan. Cada punto pendiente se reinserta donde menos aumente la distancia, en una ruta con capacidad libre. Se generan dos hijos intercambiando el papel de los padres.",
+      "crossover_steps": [
+        "Copiar al padre A.",
+        "Elegir al azar una ruta del padre B con su camión y su hora.",
+        "Quitar del hijo los puntos de esa ruta.",
+        "Si el camión ya tiene ruta en el hijo, reemplazarla y mandar sus puntos restantes a la lista de pendientes.",
+        "Insertar la ruta de B.",
+        "Reinsertar cada punto pendiente en la posición de menor aumento de distancia (matriz estática) en una ruta con capacidad libre; si no cabe en ninguna, enviar un camión disponible con hora al azar dentro de la ventana.",
+        "Quitar rutas vacías: su camión pasa a no enviado.",
+        "Reparar y evaluar."
+      ],
+      "mutation": "Con probabilidad 0.20 por solución se aplica uno de cinco tipos elegido al azar con igual probabilidad. El intercambio es el operador del material de clase; los demás permiten cambiar la hora de salida y los camiones enviados.",
+      "mutation_types": [
+        {
+          "id": "M1",
+          "nombre": "Intercambio",
+          "detalle": "Intercambia la posición de dos puntos de una misma ruta."
+        },
+        {
+          "id": "M2",
+          "nombre": "Inversión de tramo",
+          "detalle": "Invierte el orden de un tramo de puntos consecutivos de una ruta."
+        },
+        {
+          "id": "M3",
+          "nombre": "Reubicación",
+          "detalle": "Mueve un punto a otra ruta, en la posición de menor aumento de distancia."
+        },
+        {
+          "id": "M4",
+          "nombre": "Cambio de hora",
+          "detalle": "Adelanta o atrasa 15 minutos la hora de salida de un camión, sin salir de la ventana 6:00-9:00."
+        },
+        {
+          "id": "M5",
+          "nombre": "Enviar o retirar camión",
+          "detalle": "Retirar: un camión deja de salir y sus puntos se reinsertan en otras rutas. Enviar: un camión no enviado toma la segunda mitad de la ruta más larga, con hora al azar dentro de la ventana."
+        }
+      ],
+      "repair": {
+        "paso_1_capacidad": "Mientras un camión exceda su capacidad, se saca el punto que menos distancia ahorra al quitarlo y se reinserta en otra ruta con capacidad libre; si no hay, se envía el camión disponible más grande.",
+        "paso_2_jornada": "Si un camión regresa después de las 14:00, se adelanta su salida en pasos de 15 minutos hasta las 6:00; si aún no alcanza, se mueve su último punto a otra ruta y se repite.",
+        "limite": "Máximo 2 veces el número de puntos en movimientos por solución, para evitar ciclos.",
+        "si_falla": "Se aplica la penalización."
+      },
+      "penalty": "F_pen = F + λ * V; V = suma(exceso_kg_i / C_i) + suma(retraso_min_i) / 60; λ = 10",
+      "feasibility_rule": "Una solución válida siempre gana a una inválida; entre válidas gana la de menor F; entre inválidas, la de menor F penalizada.",
+      "pruning": "Se juntan padres e hijos, se eliminan las soluciones repetidas y se conservan las 200 mejores según la regla de factibilidad. Si después de quitar repetidas quedan menos de 200, se completan con soluciones nuevas al azar.",
+      "elitism": "Queda garantizado por la poda: como se conservan las mejores de padres e hijos, la mejor solución encontrada nunca se pierde.",
+      "best_archive": "Mantener las mejores soluciones válidas y distintas de toda la ejecución para obtener las tres mejores."
     },
     "generation_metrics": {
       "best_fitness": "Mejor aptitud combinada de la población.",
       "worst_fitness": "Peor aptitud combinada de la población.",
       "average_fitness": "Promedio de aptitud combinada de la población.",
       "optional": "Tiempo, costo y distancia del mejor individuo por generación.",
-      "measurement_timing": "Después de mutación y antes de la poda, según las diapositivas de clase."
+      "measurement_timing": "Después de mutación y antes de la poda, según las diapositivas de clase.",
+      "population_measured": "Padres e hijos juntos, después de mutación y antes de poda."
     },
-    "global_optimum_claim": "No se garantiza el óptimo global; se reportan las mejores soluciones factibles encontradas para los pesos elegidos."
+    "global_optimum_claim": "No se garantiza el óptimo global; se reportan las mejores soluciones factibles encontradas para los pesos elegidos.",
+    "default_parameters": {
+      "population_size": 200,
+      "generations": 500,
+      "crossover_probability": 0.85,
+      "mutation_probability_per_individual": 0.2,
+      "tournament_size": 3,
+      "initial_heuristic_share": 0.2,
+      "penalty_lambda": 10,
+      "stop_criterion": "número fijo de generaciones (500)"
+    },
+    "generation_cycle": [
+      "Seleccionar 200 padres por torneo de 3.",
+      "Formar parejas y cruzar con probabilidad 0.85; si no hay cruza, los hijos son copias de los padres.",
+      "Mutar cada hijo con probabilidad 0.20.",
+      "Reparar y evaluar cada hijo.",
+      "Registrar mejor, peor y promedio de aptitud de padres e hijos juntos (después de mutación y antes de poda).",
+      "Actualizar el archivo de mejores soluciones válidas.",
+      "Podar: quitar repetidas y conservar las 200 mejores."
+    ]
   },
   "data_contract": {
     "inputs": {
@@ -3771,12 +4042,12 @@
       {
         "id": "TD-06",
         "topic": "Operadores genéticos que preserven todos los puntos",
-        "status": "Diseño y pruebas pendientes."
+        "status": "Diseño acordado (cruza por rutas y cinco mutaciones); implementación y pruebas pendientes."
       },
       {
         "id": "TD-07",
         "topic": "Reparación o preservación de capacidades y jornada",
-        "status": "Estrategia específica pendiente."
+        "status": "Diseño acordado (reparar capacidad, luego jornada, luego penalizar); implementación y pruebas pendientes."
       },
       {
         "id": "TD-08",
@@ -3849,7 +4120,10 @@
       "Verificar el costo contra un caso pequeño calculado a mano.",
       "Verificar que no existan camiones enviados sin ruta ni camiones no enviados con ruta.",
       "Verificar que al favorecer un objetivo con su peso la solución mejore en ese objetivo.",
-      "Verificar con una ruta larga que salir a las 9:00 hace incumplir el cierre y que el agente adelanta la salida o envía otro camión."
+      "Verificar con una ruta larga que salir a las 9:00 hace incumplir el cierre y que el agente adelanta la salida o envía otro camión.",
+      "Verificar que después de cada cruza ningún camión aparezca en dos rutas.",
+      "Verificar que la reparación termina siempre (límite de movimientos) y que una solución penalizada nunca entra al archivo de mejores.",
+      "Verificar que M4 nunca saca la hora de la ventana y que M5 nunca deja puntos sin asignar."
     ]
   },
   "adversarial_review": {
@@ -4022,6 +4296,48 @@
         "finding": "Con la nueva ventana tiende a ganar la última salida, las 9:00. Si las rutas son cortas, la variable vuelve a ser casi trivial.",
         "correction": "Las pruebas deben incluir escenarios con rutas largas que se acerquen al cierre.",
         "state": "riesgo abierto"
+      },
+      {
+        "id": "RA-23",
+        "severity": "alta",
+        "finding": "En la cruza por rutas, la ruta heredada de B puede usar un camión que el hijo ya tiene; el camión quedaría en dos rutas.",
+        "correction": "La ruta heredada reemplaza la del mismo camión y sus puntos restantes se reinsertan.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-24",
+        "severity": "media",
+        "finding": "Comparar solo por aptitud permitiría que una solución inválida con buena distancia gane a una válida.",
+        "correction": "Regla de factibilidad en torneo y poda: una válida siempre gana a una inválida.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-25",
+        "severity": "media",
+        "finding": "La reparación podría mover puntos en ciclo sin terminar.",
+        "correction": "Límite de 2 veces el número de puntos en movimientos; si se agota, se penaliza.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-26",
+        "severity": "media",
+        "finding": "Quitar duplicados en la poda puede dejar la población con menos de 200 soluciones.",
+        "correction": "Se completa con soluciones nuevas al azar.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-27",
+        "severity": "baja",
+        "finding": "Reinsertar puntos evaluando con tráfico en cada intento sería muy lento.",
+        "correction": "La reinserción usa la matriz de distancias; la simulación con tráfico se hace una vez por hijo.",
+        "state": "corregido"
+      },
+      {
+        "id": "RA-28",
+        "severity": "baja",
+        "finding": "No estaba claro sobre qué población se mide la gráfica de aptitud.",
+        "correction": "Se mide sobre padres e hijos juntos, después de mutación y antes de poda.",
+        "state": "corregido"
       }
     ],
     "decisions_to_confirm": [],
@@ -4053,6 +4369,34 @@
       {
         "decision": "Cierre de jornada",
         "answer": "Se mantiene a las 14:00 con la ventana de salida 6:00-9:00; es lo que da sentido a la hora de salida."
+      },
+      {
+        "decision": "Selección",
+        "answer": "Torneo de 3 con regla de factibilidad."
+      },
+      {
+        "decision": "Cruza",
+        "answer": "Cruza por rutas, probabilidad 0.85."
+      },
+      {
+        "decision": "Mutación",
+        "answer": "Cinco tipos elegidos al azar, probabilidad 0.20 por solución."
+      },
+      {
+        "decision": "Soluciones inválidas",
+        "answer": "Reparar capacidad y jornada; si no se puede, penalizar con λ = 10."
+      },
+      {
+        "decision": "Poda",
+        "answer": "Mejores 200 de padres e hijos sin repetidas."
+      },
+      {
+        "decision": "Tamaño",
+        "answer": "Población de 200 y 500 generaciones."
+      },
+      {
+        "decision": "Población inicial",
+        "answer": "20 % heurística del vecino más cercano y 80 % al azar."
       }
     ]
   },
