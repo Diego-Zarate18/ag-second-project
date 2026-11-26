@@ -1,0 +1,10 @@
+# Backend y API (F5)
+fastapi~=0.162
+uvicorn[standard]~=0.54
+pydantic~=2.14
+
+# Cliente de Valhalla (F4)
+httpx~=0.28
+
+# Pruebas
+pytest~=9.2

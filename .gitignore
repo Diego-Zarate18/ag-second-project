@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Valhalla: datos y tiles generados (pesados, se reconstruyen)
+valhalla/custom_files/
+*.osm.pbf
+
+# Editores y sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
